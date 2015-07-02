@@ -6,7 +6,7 @@ Author URI: http://clickandpledge.com/
 Tags: gravityforms, gravity forms, gravity, cnp, clickandpledge, payment gateway, payment module, ecommerce, online payments, Click & Pledge, Click&Pledge, Click, Pledge, Salesforce, Payment, Kamran
 Requires at least: 3.7.1
 Tested up to: 4.2.2
-Stable tag: 2.100.006
+Stable tag: 2.100.007
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 

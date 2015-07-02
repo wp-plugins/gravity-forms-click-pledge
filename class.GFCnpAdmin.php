@@ -14,7 +14,10 @@ class GFCnpAdmin {
 	*/
 	public function __construct($plugin) {
 		$this->plugin = $plugin;
-
+		if(!self::isGfActive()){
+			$this->plugin->showMessage('Gravity Forms Click & Pledge requires <a href="http://www.gravityforms.com/" target="_blank">Gravity Forms</a> to be installed and activated.');
+			return;
+		}
 		// handle change in settings pages
 		if (class_exists('GFCommon')) {
 			if (version_compare(GFCommon::$version, '1.6.99999', '<')) {

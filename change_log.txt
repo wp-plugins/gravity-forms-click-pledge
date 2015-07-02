@@ -1,4 +1,8 @@
 -----------------------------------------------------------------------------
+Version 2.100.007
+- Fixed issue when there is no Gravity Forms Installed
+
+-----------------------------------------------------------------------------
 Version 2.100.005
 - Fixed Plugin Broken Issue (Ref:http://forums.clickandpledge.com/forum/platform-product-forums/3rd-party-integrations/gravity-forms/17591-2-100-004-broken)
 
