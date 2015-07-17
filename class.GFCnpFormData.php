@@ -83,15 +83,10 @@ class GFCnpFormData {
 	*/
 	private function loadForm(&$form) {
 		
-		//echo '<pre>';
-		//print_r($form);
-		//die('CnpFormData');
+		
 		foreach ($form['fields'] as &$field) {
 			$id = $field['id'];
-			//echo '<pre>';
-			//print_r($this->customfields);
-			//echo $id.'#'.RGFormsModel::get_input_type($field).'<br>';
-			//echo '<br>--------------------------------------------'.RGFormsModel::get_input_type($field).'<br><br>';
+			$checkbox_array = $multiselect_array = $list_array = array();
 			//echo RGFormsModel::get_input_type($field).'<br>';
 			switch(RGFormsModel::get_input_type($field)){
 				case 'name':
@@ -304,21 +299,76 @@ class GFCnpFormData {
 					}
 					elseif(!GFCommon::is_post_field($field)) 
 					//else
-					{				
-						//echo $id.'#'.RGFormsModel::get_input_type($field).'<br>';
+					{					
 						switch($field['type'])
 						{
-							case 'checkbox':
+							case 'checkbox':								
 								$inputs = $field['inputs'];
-								$str = '';								
+								$checkbox_array = array();
 								for($c = 1; $c <= count($inputs); $c++) {
 									$val = rgpost("input_{$id}_{$c}");
-									if($val) $str .= $val . ',';
+									if($val) {
+										$item_custom['FieldName'] = $field["label"] . ': ' . $val;
+										$item_custom['FieldValue'] = 'Checked';
+										$item_custom['FieldId'] = $id;
+										$checkbox_array[] = $item_custom;
+									} else {
+										$item_custom['FieldName'] = $field["label"] . ': ' . $inputs[$c-1]['label'];
+										$item_custom['FieldValue'] = 'Not Checked';
+										$item_custom['FieldId'] = $id;
+										$checkbox_array[] = $item_custom;
+									}
 								}								
-								$item_custom['FieldName'] = $field["label"];
-								$item_custom['FieldValue'] = $str;
-								$item_custom['FieldId'] = $id;								
+																
+							break;							
+							case 'multiselect':
+								$choices = $field['choices'];
+								$inputs = rgpost("input_{$id}");														
+								$multiselect_array = array();
+								for($c = 0; $c < count($choices); $c++) {
+									if(in_array($choices[$c]['value'], $inputs)) {
+										$item_custom['FieldName'] = $field["label"] . ': ' . $choices[$c]['value'];
+										$item_custom['FieldValue'] = 'Checked';
+										$item_custom['FieldId'] = $id;
+										$multiselect_array[] = $item_custom;
+									} else {
+										$item_custom['FieldName'] = $field["label"] . ': ' . $choices[$c]['value'];
+										$item_custom['FieldValue'] = 'Not Checked';
+										$item_custom['FieldId'] = $id;
+										$multiselect_array[] = $item_custom;
+									}
+								}							
 							break;
+							case 'list':								
+								$inputs = rgpost("input_{$id}");
+								$choices = ($field['choices'] != '') ? $field['choices'] : array();
+								$labels_array = array();								
+								if(count($choices) > 0) { //If it enable 'Enable multiple columns' option
+									foreach($choices as $choice) {
+										$label = $field["label"] . ': ' . $choice['value'];
+										array_push($labels_array, $label);
+									}
+								} else {
+									for($in = 0; $in < count($inputs); $in++) {
+										array_push($labels_array, $field["label"]);
+									}
+								}								
+								$list_array = array();
+								for($c = 0; $c < count($inputs); $c++) {
+										$row = 1;
+										if($c < count($choices)) {
+											$item_custom['FieldName'] = $labels_array[$c];
+											$row = 1;
+										} else {
+											$row = $c / count($choices);
+											$row = (integer)$row;								
+											$item_custom['FieldName'] = $labels_array[$c-(count($choices)*$row)];											
+										}										
+										$item_custom['FieldValue'] = $inputs[$c];
+										$item_custom['FieldId'] = $id;
+										$list_array[] = $item_custom;
+								}
+							break;							
 							case 'radio':								
 								$str = rgpost("input_{$id}");								
 								$item_custom['FieldName'] = $field["label"];
@@ -362,20 +412,41 @@ class GFCnpFormData {
 								$item_custom['FieldValue'] = $val;
 								$item_custom['FieldId'] = $id;							
 						}
-						if($item_custom['FieldValue'])
-						{
-							if(count($item_custom)) {
-								$hasfield = false;
-								if(count($this->customfields))
-								{
-									foreach($this->customfields as $cfield)
-									{
-										if($cfield['FieldId'] == $item_custom['FieldId'])
-										$hasfield = true;
-									}
+						//echo $field['type'].'<br>';
+						if($field['type'] == 'checkbox') {							
+							if(count($checkbox_array)) {								
+								foreach($checkbox_array as $cbfield)	{
+									$this->customfields[] = $cbfield;
 								}
-								if(!$hasfield)
-								$this->customfields[] = $item_custom;
+							}							
+						} elseif($field['type'] == 'multiselect') {						
+							if(count($multiselect_array)) {
+								foreach($multiselect_array as $cbfield)	{
+									$this->customfields[] = $cbfield;
+								}							
+							}							
+						} elseif($field['type'] == 'list') {						
+							if(count($list_array)) {
+								foreach($list_array as $cbfield)	{
+									$this->customfields[] = $cbfield;
+								}							
+							}							
+						} else {
+							if($item_custom['FieldValue'])
+							{
+								if(count($item_custom)) {
+									$hasfield = false;
+									if(count($this->customfields)) //Do filter duplicate fields
+									{
+										foreach($this->customfields as $cfield)
+										{
+											if($cfield['FieldId'] == $item_custom['FieldId'])
+											$hasfield = true;
+										}
+									}
+									if(!$hasfield)
+									$this->customfields[] = $item_custom;
+								}
 							}
 						}
 						//$this->customfields[] = $item_custom;																	
@@ -401,7 +472,7 @@ class GFCnpFormData {
 		$item_custom = array();
 		$item_validate = array();
 		$item_shipping = array();
-
+		//echo $field["inputType"].'<br>';
 		if (!RGFormsModel::is_field_hidden($form, $field, array())) {
 			$lead_value = rgpost("input_{$id}");
 
@@ -411,6 +482,9 @@ class GFCnpFormData {
 			switch ($field["inputType"]) {
 				case 'singleproduct':
 				case 'calculation':
+					 //echo '<pre>';
+					 //print_r(GF_Field::sanitize_settings_conditional_logic($field['conditionalLogic']));
+					 //die();
 					 $pricecalculation = GFCommon::to_number(rgpost("input_{$id}_2"));
 					 $qtycalculation = GFCommon::to_number(rgpost("input_{$id}_3"));
 					if($qtycalculation > 0 && $pricecalculation != '') {
@@ -437,7 +511,7 @@ class GFCnpFormData {
 					$pricehiddenproduct = GFCommon::to_number($field["basePrice"]);
 					$qtyhiddenproduct = GFCommon::to_number(rgpost("input_{$id}_3"));
 
-					if($qtyhiddenproduct > 0 && $pricehiddenproduct != '') {
+					if($qtyhiddenproduct > 0 && is_numeric($pricehiddenproduct)) {
 						$isProduct = true;					
 						$item['ItemName'] = $field["label"];
 						$item['ItemID'] = $field["id"];
@@ -458,8 +532,13 @@ class GFCnpFormData {
 					break;
 				case 'donation':
 				case 'price':					
-					$pricedonation = GFCommon::to_number($lead_value);
-					if($qty > 0 && $pricedonation != '') {
+					//echo '<pre>';
+					//echo GFCommon::evaluate_conditional_logic( ($field['conditionalLogic']['rules'], $form, $lead_value ) );
+					//print_r($field['conditionalLogic']['rules']);
+					//print_r($field);
+					//die();
+					$pricedonation = GFCommon::to_number($lead_value);					
+					if($qty > 0 && is_numeric($pricedonation)) {
 						$isProduct = true;
 						$item['ItemName'] = $field["label"];
 						$item['ItemID'] = $field["id"];
@@ -499,6 +578,11 @@ class GFCnpFormData {
 					*/
 					break;
 				default:					
+					//echo '<pre>';
+					//print_r($field);
+					//echo GFCommon::get_other_choice_value().'@@@@@';
+					//print_r(GF_Field::sanitize_settings_conditional_logic($field['conditionalLogic']));
+					//die();
 					// handle drop-down lists and radio buttons
 					if($field["type"] == 'shipping')
 					{
@@ -585,8 +669,7 @@ class GFCnpFormData {
 		$this->needtovalidatefields[] = $item_validate;
 		if(count($item_shipping))
 		$this->shippingfields[] = $item_shipping;
-		//echo '<pre>';
-		//print_r($this->productdetails);
+		
 		return $price;
 	}
 

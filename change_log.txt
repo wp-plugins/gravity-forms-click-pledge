@@ -1,4 +1,8 @@
 -----------------------------------------------------------------------------
+Version 2.100.008
+- Added new features to handle Radiobutton, Multi Check box
+
+-----------------------------------------------------------------------------
 Version 2.100.007
 - Fixed issue when there is no Gravity Forms Installed
 

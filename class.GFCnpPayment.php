@@ -358,7 +358,7 @@ class GFCnpPayment {
 	public function getPaymentXML($configValues, $orderplaced) 
 	{
 		//echo '<pre>';
-		//print_r($configValues);
+		//print_r($orderplaced);
 		//die();
 		$dom = new DOMDocument('1.0', 'UTF-8');
 		$root = $dom->createElement('CnPAPI', '');
@@ -380,7 +380,7 @@ class GFCnpPayment {
 		$applicationname=$dom->createElement('Name','CnP_PaaS_FM_GravityForm'); 
 		$applicationid=$application->appendChild($applicationname);
 
-		$applicationversion=$dom->createElement('Version','2.100.007');
+		$applicationversion=$dom->createElement('Version','2.100.008');
 		$applicationversion=$application->appendChild($applicationversion);
 
 		$request = $dom->createElement('Request', '');
@@ -618,7 +618,8 @@ class GFCnpPayment {
 			$custonodes = 0;
 			for ($p = 0; $p < count($orderplaced->customfields); $p++) 
 			{
-			if((substr($orderplaced->customfields[$p]['FieldName'], 0, 5) != '{SKU}') && $orderplaced->customfields[$p]['FieldValue'] != '') {
+			//if((substr($orderplaced->customfields[$p]['FieldName'], 0, 5) != '{SKU}') && $orderplaced->customfields[$p]['FieldValue'] != '') {
+			if((substr($orderplaced->customfields[$p]['FieldName'], 0, 5) != '{SKU}')) {
 				$custonodes++;
 				$customfield = $dom->createElement('CustomField','');
 				$customfield = $customfieldlist->appendChild($customfield);
@@ -712,96 +713,209 @@ class GFCnpPayment {
 			$orderitemlist=$dom->createElement('OrderItemList','');
 			$orderitemlist=$order->appendChild($orderitemlist);
 			$OptionLabel = '';			
-			$p = 0;	
+			$p = 0;
+			$products_included = array();
+			//echo '<pre>';
+			//print_r($orderplaced);
+			//die();
 			foreach ( $orderplaced->productdetails as  $pr) 
 			{				
-				$OptionValue = '';
-				$orderitem=$dom->createElement('OrderItem','');
-				$orderitem=$orderitemlist->appendChild($orderitem);
+				if(isset($pr['OptionValue']) && $pr['OptionValue'] != '') {
+					$OptionValue = '';
+					$orderitem=$dom->createElement('OrderItem','');
+					$orderitem=$orderitemlist->appendChild($orderitem);
 
-				$itemid=$dom->createElement('ItemID',($p+1));
-				$itemid=$orderitem->appendChild($itemid);				
-				$tempName = $pr['ItemName'];
-				$tempName2 = (isset($pr['OptionValue']) && $pr['OptionValue'] != '') ? $pr['OptionValue'] : '';
-				$cost = $pr['UnitPrice'];
-				$tempName = ($tempName2) ? $tempName . ' ('.$tempName2.')' : $tempName;
-				$OptionLabel = $pr['OptionValue'];
-				$itemname=$dom->createElement('ItemName',$this->safeString(trim($tempName), 50));
-				$itemname=$orderitem->appendChild($itemname);
+					$itemid=$dom->createElement('ItemID',($p+1));
+					$itemid=$orderitem->appendChild($itemid);				
+					$tempName = $pr['ItemName'];
+					$tempName2 = (isset($pr['OptionValue']) && $pr['OptionValue'] != '') ? $pr['OptionValue'] : '';
+					$optcost = 0;
+					$cost = $pr['UnitPrice'];
+					array_push($products_included, $pr['ItemID']);
+					foreach($orderplaced->productdetails as $searchopt) { //Search for related products
+						if(strtolower($pr['OptionValue']) == strtolower('Field ID ' . $searchopt['ItemID'])) {
+							$optcost +=	$searchopt['UnitPrice'];
+							array_push($products_included,$searchopt['ItemID']);
+						}
+					}
+					$cost = $cost + $optcost;
+					//print_r($pr);
+					//die();
+					$tempName = ($tempName2) ? $tempName . ' ('.$tempName2.')' : $tempName;
+					$OptionLabel = $pr['OptionValue'];
+					$itemname=$dom->createElement('ItemName',$this->safeString(trim($tempName), 50));
+					$itemname=$orderitem->appendChild($itemname);
 
-				$quntity=$dom->createElement('Quantity',$pr['Quantity']);
-				$quntity=$orderitem->appendChild($quntity);
-				//print_r($pr);
-				//echo ($cost/$orderplaced->recurring['Installments'])*$pr['Quantity'];
-				//die('hhhhhhhhhhhhhh');
-				if((isset($orderplaced->recurring)) && ($orderplaced->recurring['isRecurring'] == 'yes')) {
-					if($orderplaced->recurring['indefinite'] == 'yes') {
-						$Installments = ($orderplaced->recurring['RecurringMethod'] == 'Installment') ? 998 : 999;
-					} elseif($orderplaced->recurring['Installments']) {
-						$Installments = $orderplaced->recurring['Installments'];
-					}
-					else {
-						$Installments = 999;
-					}
-					
-					if($orderplaced->recurring['RecurringMethod'] == 'Installment') {						
-					$total_calculate += $this->number_format(($cost/$Installments),2,'.','')*$pr['Quantity'];
-					$unitprice=$dom->createElement('UnitPrice',($this->number_format(($cost/$Installments),2,'.','')*100));
-					$unitprice=$orderitem->appendChild($unitprice);
+					$quntity=$dom->createElement('Quantity',$pr['Quantity']);
+					$quntity=$orderitem->appendChild($quntity);
+					//print_r($pr);
+					//echo ($cost/$orderplaced->recurring['Installments'])*$pr['Quantity'];
+					//die('hhhhhhhhhhhhhh');
+					if((isset($orderplaced->recurring)) && ($orderplaced->recurring['isRecurring'] == 'yes')) {
+						if($orderplaced->recurring['indefinite'] == 'yes') {
+							$Installments = ($orderplaced->recurring['RecurringMethod'] == 'Installment') ? 998 : 999;
+						} elseif($orderplaced->recurring['Installments']) {
+							$Installments = $orderplaced->recurring['Installments'];
+						}
+						else {
+							$Installments = 999;
+						}
+						
+						if($orderplaced->recurring['RecurringMethod'] == 'Installment') {						
+						$total_calculate += $this->number_format(($cost/$Installments),2,'.','')*$pr['Quantity'];
+						$unitprice=$dom->createElement('UnitPrice',($this->number_format(($cost/$Installments),2,'.','')*100));
+						$unitprice=$orderitem->appendChild($unitprice);
+						} else {
+						$total_calculate += $cost*$pr['Quantity'];
+						$unitprice=$dom->createElement('UnitPrice',($cost*100));
+						$unitprice=$orderitem->appendChild($unitprice);
+						}
 					} else {
 					$total_calculate += $cost*$pr['Quantity'];
 					$unitprice=$dom->createElement('UnitPrice',($cost*100));
 					$unitprice=$orderitem->appendChild($unitprice);
 					}
-				} else {
-				$total_calculate += $cost*$pr['Quantity'];
-				$unitprice=$dom->createElement('UnitPrice',($cost*100));
-				$unitprice=$orderitem->appendChild($unitprice);
-				}
-				
-				//SKU Handling
-				foreach($orderplaced->customfields as $sub)
-				{
-					//print_r($sub);
-					if((substr($sub['FieldName'], 0, 5) == '{SKU}') && $sub['FieldValue'] != '') {
-						$parts = explode('}{OPTION=', $sub['FieldName']);
-						//print_r($parts);
-						if(count($parts) > 1) //TO handle if product has options
-						{
-						$id = $parts[0];
-						$id = substr($id, 14);
-						$val = substr($parts[1], 0, -1);
-						}
-						else
-						{
-						$id = substr($parts[0], 14);
-						$id = substr($id, 0, -1);
-						$val = '';
-						}
-						//echo $id;
-						//die();
-						if($id == $pr['ItemID'] && $OptionLabel == substr($parts[1],0,-1)) 
-						{
-							
+					
+					//SKU Handling
+					foreach($orderplaced->customfields as $sub)
+					{
+						//print_r($sub);
+						if((substr($sub['FieldName'], 0, 5) == '{SKU}') && $sub['FieldValue'] != '') {
+							$parts = explode('}{OPTION=', $sub['FieldName']);
+							//print_r($parts);
 							if(count($parts) > 1) //TO handle if product has options
 							{
-								if($OptionLabel != '' && $val != '' && $OptionLabel == substr($parts[1],0,-1))
-								{
-									$sku_code=$dom->createElement('SKU',$this->safeString($sub['FieldValue'], 100));
-									$sku_code=$orderitem->appendChild($sku_code);
-								}
-							} else {
-							$sku_code=$dom->createElement('SKU',$this->safeString($sub['FieldValue'], 100));
-							$sku_code=$orderitem->appendChild($sku_code);
+							$id = $parts[0];
+							$id = substr($id, 14);
+							$val = substr($parts[1], 0, -1);
 							}
+							else
+							{
+							$id = substr($parts[0], 14);
+							$id = substr($id, 0, -1);
+							$val = '';
+							}
+							//echo $id;
+							//die();
+							if($id == $pr['ItemID'] && $OptionLabel == substr($parts[1],0,-1)) 
+							{
+								
+								if(count($parts) > 1) //TO handle if product has options
+								{
+									if($OptionLabel != '' && $val != '' && $OptionLabel == substr($parts[1],0,-1))
+									{
+										$sku_code=$dom->createElement('SKU',$this->safeString($sub['FieldValue'], 100));
+										$sku_code=$orderitem->appendChild($sku_code);
+									}
+								} else {
+								$sku_code=$dom->createElement('SKU',$this->safeString($sub['FieldValue'], 100));
+								$sku_code=$orderitem->appendChild($sku_code);
+								}
+							}
+							elseif($id == $pr['ItemID'] && $val == '') {
+							
+							}
+							
 						}
-						elseif($id == $pr['ItemID'] && $val == '') {
-						
-						}
-						
 					}
+					//die();
 				}
-				//die();
+			}
+			
+			//Products which are not having options			
+			foreach ( $orderplaced->productdetails as  $pr) 
+			{				
+				
+				if(!in_array($pr['ItemID'], $products_included)) {
+					//echo $pr['ItemID'].'<br>';
+					$OptionValue = '';
+					$orderitem=$dom->createElement('OrderItem','');
+					$orderitem=$orderitemlist->appendChild($orderitem);
+
+					$itemid=$dom->createElement('ItemID',($p+1));
+					$itemid=$orderitem->appendChild($itemid);				
+					$tempName = $pr['ItemName'];
+					$tempName2 = (isset($pr['OptionValue']) && $pr['OptionValue'] != '') ? $pr['OptionValue'] : '';					
+					$cost = $pr['UnitPrice'];
+					$tempName = ($tempName2) ? $tempName . ' ('.$tempName2.')' : $tempName;
+					$OptionLabel = $pr['OptionValue'];
+					$itemname=$dom->createElement('ItemName',$this->safeString(trim($tempName), 50));
+					$itemname=$orderitem->appendChild($itemname);
+
+					$quntity=$dom->createElement('Quantity',$pr['Quantity']);
+					$quntity=$orderitem->appendChild($quntity);
+					//print_r($pr);
+					//echo ($cost/$orderplaced->recurring['Installments'])*$pr['Quantity'];
+					//die('hhhhhhhhhhhhhh');
+					if((isset($orderplaced->recurring)) && ($orderplaced->recurring['isRecurring'] == 'yes')) {
+						if($orderplaced->recurring['indefinite'] == 'yes') {
+							$Installments = ($orderplaced->recurring['RecurringMethod'] == 'Installment') ? 998 : 999;
+						} elseif($orderplaced->recurring['Installments']) {
+							$Installments = $orderplaced->recurring['Installments'];
+						}
+						else {
+							$Installments = 999;
+						}
+						
+						if($orderplaced->recurring['RecurringMethod'] == 'Installment') {						
+						$total_calculate += $this->number_format(($cost/$Installments),2,'.','')*$pr['Quantity'];
+						$unitprice=$dom->createElement('UnitPrice',($this->number_format(($cost/$Installments),2,'.','')*100));
+						$unitprice=$orderitem->appendChild($unitprice);
+						} else {
+						$total_calculate += $cost*$pr['Quantity'];
+						$unitprice=$dom->createElement('UnitPrice',($cost*100));
+						$unitprice=$orderitem->appendChild($unitprice);
+						}
+					} else {
+					$total_calculate += $cost*$pr['Quantity'];
+					$unitprice=$dom->createElement('UnitPrice',($cost*100));
+					$unitprice=$orderitem->appendChild($unitprice);
+					}
+					
+					//SKU Handling
+					foreach($orderplaced->customfields as $sub)
+					{
+						//print_r($sub);
+						if((substr($sub['FieldName'], 0, 5) == '{SKU}') && $sub['FieldValue'] != '') {
+							$parts = explode('}{OPTION=', $sub['FieldName']);
+							//print_r($parts);
+							if(count($parts) > 1) //TO handle if product has options
+							{
+							$id = $parts[0];
+							$id = substr($id, 14);
+							$val = substr($parts[1], 0, -1);
+							}
+							else
+							{
+							$id = substr($parts[0], 14);
+							$id = substr($id, 0, -1);
+							$val = '';
+							}
+							//echo $id;
+							//die();
+							if($id == $pr['ItemID'] && $OptionLabel == substr($parts[1],0,-1)) 
+							{
+								
+								if(count($parts) > 1) //TO handle if product has options
+								{
+									if($OptionLabel != '' && $val != '' && $OptionLabel == substr($parts[1],0,-1))
+									{
+										$sku_code=$dom->createElement('SKU',$this->safeString($sub['FieldValue'], 100));
+										$sku_code=$orderitem->appendChild($sku_code);
+									}
+								} else {
+								$sku_code=$dom->createElement('SKU',$this->safeString($sub['FieldValue'], 100));
+								$sku_code=$orderitem->appendChild($sku_code);
+								}
+							}
+							elseif($id == $pr['ItemID'] && $val == '') {
+							
+							}
+							
+						}
+					}
+					//die();
+				}
 			}
 			
 		}
@@ -949,6 +1063,8 @@ class GFCnpPayment {
 		$total_amount=$trans_totals->appendChild($total_amount);
 		
 		$strParam =$dom->saveXML();		
+		//echo '<pre>';
+		//print_r($orderplaced);
 		//echo $strParam;
 		//die('Iam in class.GFCnpPayment.php');
 		return $strParam;
