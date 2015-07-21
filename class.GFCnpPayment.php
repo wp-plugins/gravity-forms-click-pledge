@@ -380,7 +380,7 @@ class GFCnpPayment {
 		$applicationname=$dom->createElement('Name','CnP_PaaS_FM_GravityForm'); 
 		$applicationid=$application->appendChild($applicationname);
 
-		$applicationversion=$dom->createElement('Version','2.100.008');
+		$applicationversion=$dom->createElement('Version','2.100.009');
 		$applicationversion=$application->appendChild($applicationversion);
 
 		$request = $dom->createElement('Request', '');
@@ -421,7 +421,9 @@ class GFCnpPayment {
 		if($orderplaced->firstName || $orderplaced->ccName) {
 		$billinginfo=$dom->createElement('BillingInformation','');
 		$billinginfo=$cardholder->appendChild($billinginfo);
-		
+		//echo '<pre>';
+		//print_r($orderplaced);
+		//die();
 		if($orderplaced->firstName != '') {
 		$billfirst_name=$dom->createElement('BillingFirstName',$this->safeString($orderplaced->firstName,50));
 		$billfirst_name=$billinginfo->appendChild($billfirst_name);
@@ -442,16 +444,18 @@ class GFCnpPayment {
 		} else {
 			$parts = explode(' ',$orderplaced->ccName);
 			if(count($parts) > 1) {
-				$BillingLastName = $parts[1];
+				$BillingLastName = substr($orderplaced->ccName,strlen($parts[0]));
 			} else {
 				$BillingLastName = '';
 			}
+			//print_r($parts);
+			//echo $BillingLastName;
 			if($BillingLastName != '') {
 			$billlast_name=$dom->createElement('BillingLastName',$this->safeString($BillingLastName,50));
 			$billlast_name=$billinginfo->appendChild($billlast_name);
 			}
 		}
-
+//die();
 		if (isset($orderplaced->email) && $orderplaced->email != '')
 		{
 			$bill_email=$dom->createElement('BillingEmail',$orderplaced->email);
@@ -704,6 +708,7 @@ class GFCnpPayment {
 		}
 		
 		$total_calculate = 0;
+		
 		//echo '<pre>';
 		//print_r($orderplaced);
 		//die();
@@ -720,7 +725,7 @@ class GFCnpPayment {
 			//die();
 			foreach ( $orderplaced->productdetails as  $pr) 
 			{				
-				if(isset($pr['OptionValue']) && $pr['OptionValue'] != '') {
+				if(isset($pr['OptionValue']) && $pr['OptionValue'] != '' && !in_array($pr['ItemID'], $products_included)) {
 					$OptionValue = '';
 					$orderitem=$dom->createElement('OrderItem','');
 					$orderitem=$orderitemlist->appendChild($orderitem);
@@ -728,24 +733,40 @@ class GFCnpPayment {
 					$itemid=$dom->createElement('ItemID',($p+1));
 					$itemid=$orderitem->appendChild($itemid);				
 					$tempName = $pr['ItemName'];
-					$tempName2 = (isset($pr['OptionValue']) && $pr['OptionValue'] != '') ? $pr['OptionValue'] : '';
+					if(isset($pr['OptionLabel']) && $pr['OptionLabel'] != '')  
+					{ 
+						$tempName2 = $pr['OptionLabel']; 
+					} 
+					else 
+					{
+						$tempName2 = (isset($pr['OptionValue']) && $pr['OptionValue'] != '') ? $pr['OptionValue'] : '';
+					}
 					$optcost = 0;
+					$conditionalfieldlabel = '';
 					$cost = $pr['UnitPrice'];
 					array_push($products_included, $pr['ItemID']);
 					foreach($orderplaced->productdetails as $searchopt) { //Search for related products
 						if(strtolower($pr['OptionValue']) == strtolower('Field ID ' . $searchopt['ItemID'])) {
 							$optcost +=	$searchopt['UnitPrice'];
 							array_push($products_included,$searchopt['ItemID']);
+							if(isset($searchopt['OptionLabel']) && $searchopt['OptionLabel'] != '')
+							$conditionalfieldlabel = $searchopt['OptionLabel'];
+							else
+							$conditionalfieldlabel = $searchopt['ItemName'];
 						}
 					}
 					$cost = $cost + $optcost;
-					//print_r($pr);
+					//print_r($products_included);
 					//die();
-					$tempName = ($tempName2) ? $tempName . ' ('.$tempName2.')' : $tempName;
+					if($conditionalfieldlabel != '') {
+						$tempName = $tempName . ' ('.$conditionalfieldlabel.')';
+					} else {
+						$tempName = ($tempName2) ? $tempName . ' ('.$tempName2.')' : $tempName;
+					}
 					$OptionLabel = $pr['OptionValue'];
 					$itemname=$dom->createElement('ItemName',$this->safeString(trim($tempName), 50));
 					$itemname=$orderitem->appendChild($itemname);
-
+					
 					$quntity=$dom->createElement('Quantity',$pr['Quantity']);
 					$quntity=$orderitem->appendChild($quntity);
 					//print_r($pr);
@@ -825,7 +846,8 @@ class GFCnpPayment {
 			//Products which are not having options			
 			foreach ( $orderplaced->productdetails as  $pr) 
 			{				
-				
+				//print_r($products_included);
+				//die();
 				if(!in_array($pr['ItemID'], $products_included)) {
 					//echo $pr['ItemID'].'<br>';
 					$OptionValue = '';

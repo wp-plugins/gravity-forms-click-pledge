@@ -1,4 +1,7 @@
 -----------------------------------------------------------------------------
+Version 2.100.009
+- Added new features to handle Conditional Logic Products
+
 Version 2.100.008
 - Added new features to handle Radiobutton, Multi Check box
 

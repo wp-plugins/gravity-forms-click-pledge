@@ -605,8 +605,8 @@ class GFCnpFormData {
 							$item['OptionValue'] = $name;
 							$choices = $field["choices"];
 							foreach($choices as $ch)
-							{
-								if($ch['value'] == $price)
+							{								
+								if(GFCommon::to_number($ch['price']) == $price)
 								$item['OptionLabel'] = $ch['text'];
 							}
 						}						
@@ -614,7 +614,7 @@ class GFCnpFormData {
 					
 					break;
 			}
-
+//die();
 			// pick up extra costs from any options
 			if ($isProduct) {
 				$options = GFCommon::get_product_fields_by_type($form, array('option'), $id);
