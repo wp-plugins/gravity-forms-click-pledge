@@ -59,7 +59,7 @@ var GFCnpEcheck = (function($) {
 jQuery(function($) {
 
 	// add required classes to the field on the admin form
-	fieldSettings.gfcnprecurring = ".conditional_logic_field_setting, .error_message_setting, .label_setting, .admin_label_setting, .rules_setting, .description_setting, .css_class_setting, .gfcnpecheck_setting";
+	fieldSettings.gfcnprecurring = ".conditional_logic_field_setting, .error_message_setting, .label_setting, .admin_label_setting, .rules_setting, .description_setting, .css_class_setting, .gfcnpecheck_setting, .gfcnpcustompayment_setting";
 
 	// binding to the load field settings event to initialize custom inputs
 	$(document).bind("gform_load_field_settings", function(event, field, form) {

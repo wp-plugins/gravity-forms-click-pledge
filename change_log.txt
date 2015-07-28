@@ -1,4 +1,8 @@
 -----------------------------------------------------------------------------
+Version 2.2.0
+- Added new features to add custom payment type
+- Allow Zero amount for processing
+
 Version 2.100.009
 - Added new features to handle Conditional Logic Products
 

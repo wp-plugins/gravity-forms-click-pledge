@@ -6,7 +6,7 @@ Author URI: http://clickandpledge.com/
 Tags: gravityforms, gravity forms, gravity, cnp, clickandpledge, payment gateway, payment module, ecommerce, online payments, Click & Pledge, Click&Pledge, Click, Pledge, Salesforce, Payment, Kamran
 Requires at least: 3.7.1
 Tested up to: 4.2.2
-Stable tag: 2.100.009
+Stable tag: 2.2.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,95 +44,102 @@ Gravity Forms will now display the Credit Card and Recurring fields under Pricin
 * add a credit card field; if you have a multi-page form, this must be the on the last page so that all other form validations occur first
 * add a confirmation message to the form indicating that payment was successful; the form will not complete if payment was not successful, and will display an error message in the credit card field
 
+== Screenshots ==
+1. Settings page
+2. Form Editor
+3. Form display in front end
+4. Credit Card Error display
+5. Click & Pledge feed
+6. Recurring Field
+7. Credit Card Fields
+8. eCheck Fields
 == Changelog ==
------------------------------------------------------------------------------
-Version 2.100.004.000.20150511
-- Fixed SOAP Client issue (Ref:https://forums.clickandpledge.com/showthread.php?t=2545&p=9533#post9533)
-- Simple load XML issue
+= 2.2.0 =
+* Added new features to add custom payment type
+* Allow Zero amount for processing
 
------------------------------------------------------------------------------
-Version 2.100.003.000.20150506
-- Fixed Ip address issue
+= 2.100.009 =
+* Added new features to handle Conditional Logic Products
 
------------------------------------------------------------------------------
-Version 2.100.002.000.20150505
-- Fixed SKU issue (don’t allow & sign in the SKU)
-- Fixed First Name issue (Ref:https://forums.clickandpledge.com/showthread.php?t=2542)
+= 2.100.008 =
+* Added new features to handle Radiobutton, Multi Check box
 
------------------------------------------------------------------------------
-Version 2.100.001.000.20150420
-- Fixed shipping method issue 
+= 2.100.007 =
+* Fixed issue when there is no Gravity Forms Installed
 
------------------------------------------------------------------------------
-Version 2.100.000.000.20150324    
-- Handled to avoid replace of 'js.php' file. (Ref:https://github.com/ClickandPledge/WordPress-GravityForms/issues/1)
-- Fixed Minor issues
-- Added custom labels for Recurring field (Ref:https://forums.clickandpledge.com/showthread.php?t=2297)
-- Compatible with Gravity Forms 1.9.4.9
-- Updated March 24, 2015
+= 2.100.005 =
+* Fixed Plugin Broken Issue (Ref:http://forums.clickandpledge.com/forum/platform-product-forums/3rd-party-integrations/gravity-forms/17591-2-100-004-broken)
 
------------------------------------------------------------------------------
-Version 2.0.8    
-- Fixed Permissions issue.
-- Updated Dec 03, 2014
+= 2.100.004.000.20150511 =
+* Fixed SOAP Client issue (Ref:https://forums.clickandpledge.com/showthread.php?t=2545&p=9533#post9533)
+* Simple load XML issue
 
------------------------------------------------------------------------------
-Version 2.0.7    
-- Fixed SKU issue.
-- Updated Nov 17, 2014
+= 2.100.003.000.20150506 =
+* Fixed Ip address issue
 
------------------------------------------------------------------------------
+= 2.100.002.000.20150505 =
+* Fixed SKU issue (don’t allow & sign in the SKU)
+* Fixed First Name issue (Ref:https://forums.clickandpledge.com/showthread.php?t=2542)
+
+= 2.100.001.000.20150420 =
+* Fixed shipping method issue 
+
+= 2.100.000.000.20150324 = 
+* Handled to avoid replace of 'js.php' file. (Ref:https://github.com/ClickandPledge/WordPress-GravityForms/issues/1)
+* Fixed Minor issues
+* Added custom labels for Recurring field (Ref:https://forums.clickandpledge.com/showthread.php?t=2297)
+* Compatible with Gravity Forms 1.9.4.9
+* Updated March 24, 2015
+
+= 2.0.8 =
+* Fixed Permissions issue.
+* Updated Dec 03, 2014
+
+= 2.0.7 = 
+* Fixed SKU issue.
+* Updated Nov 17, 2014
+
 Version 2.0.6    
-- Fixed special characters issue.
-- Fixed recurring field issue (Not adding to the form).
-- Updated Oct 07, 2014
+* Fixed special characters issue.
+* Fixed recurring field issue (Not adding to the form).
+* Updated Oct 07, 2014
 
------------------------------------------------------------------------------
-Version 2.0.5    
-- Fixed warning message when form submit. (Ref:https://forums.clickandpledge.com/showthread.php?t=2070&p=7732)
-- Update the 'js.php' for not to add more than one 'recurring' or 'echeck' fields to the same form.
-- Updated Sep 25, 2014
+= 2.0.5 = 
+* Fixed warning message when form submit. (Ref:https://forums.clickandpledge.com/showthread.php?t=2070&p=7732)
+* Update the 'js.php' for not to add more than one 'recurring' or 'echeck' fields to the same form.
+* Updated Sep 25, 2014
 
------------------------------------------------------------------------------
-Version 2.0.4    
-- Fixed issue while adding a form to C&P gateway.
-- Updated July 21, 2014
+= 2.0.4 = 
+* Fixed issue while adding a form to C&P gateway.
+* Updated July 21, 2014
 
------------------------------------------------------------------------------
-Version 2.0.3    
-- Fixed Duplicate custom field issue.
-- Updated July 10, 2014
+= 2.0.3 =   
+* Fixed Duplicate custom field issue.
+* Updated July 10, 2014
 
------------------------------------------------------------------------------
-Version 2.0.2    
-- Fixed UI issues in recurring field.
-- Updated June 25, 2014
+= 2.0.2 = 
+* Fixed UI issues in recurring field.
+* Updated June 25, 2014
 
------------------------------------------------------------------------------
-Version 2.0.1    
-- Fixed UI issues in recurring field.
+= 2.0.1 =
+* Fixed UI issues in recurring field.
 
------------------------------------------------------------------------------
-Version 2.0.0    
-- Added eCheck feature.
+= 2.0.0 = 
+* Added eCheck feature.
 
------------------------------------------------------------------------------
-Version 1.2.1    
-- Fixed issue for special characters handling in XML.
-- Added Form ID while assigning forms to C&P Payment Gateway form  
+= 1.2.1 = 
+* Fixed issue for special characters handling in XML.
+* Added Form ID while assigning forms to C&P Payment Gateway form  
 
------------------------------------------------------------------------------
-Version 1.2    
-- Fixed issue while saving payment options in admin.  
+= 1.2 =
+* Fixed issue while saving payment options in admin.  
 
------------------------------------------------------------------------------
-Version 1.1    
-- Fixed validation issue on using multi payment gateways.    
-- Added support for multiple payment gateways to be configured using the same form and executed based on condition.
+= 1.1 = 
+* Fixed validation issue on using multi payment gateways.    
+* Added support for multiple payment gateways to be configured using the same form and executed based on condition.
 
------------------------------------------------------------------------------
-Version 1.0.beta    
-- Added ability to specify mode (Production or Test) on settings page
+= 1.0.beta   = 
+* Added ability to specify mode (Production or Test) on settings page
 
 == Frequently Asked Questions ==
 <strong>Click & Pledge Overview</strong><br>

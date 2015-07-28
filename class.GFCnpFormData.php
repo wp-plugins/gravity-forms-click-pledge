@@ -22,6 +22,9 @@ class GFCnpFormData {
 	public $ecChecktype = '';
 	public $ecIdtype = '';
 	
+	//Custom Payment
+	public $paymentnumber;
+	
 	public $namePrefix = '';
 	public $firstName = '';
 	public $lastName = '';
@@ -54,8 +57,10 @@ class GFCnpFormData {
 	//Duplicate fields checking
 	public $creditcardCount = 0;
 	public $echeckCount = 0;
+	public $custompaymentCount = 0;
 	public $shippingCount = 0;
 	public $recurringCount = 0;
+	public $namefieldCount = 0;
 	
 	private $isLastPageFlag = FALSE;
 	private $isCcHiddenFlag = FALSE;
@@ -90,6 +95,7 @@ class GFCnpFormData {
 			//echo RGFormsModel::get_input_type($field).'<br>';
 			switch(RGFormsModel::get_input_type($field)){
 				case 'name':
+					$this->namefieldCount++;
 					// only pick up the first name field (assume later ones are additional info)
 					if (empty($this->firstName) && empty($this->lastName)) {
 						$this->namePrefix = rgpost("input_{$id}_2");
@@ -273,7 +279,18 @@ class GFCnpFormData {
 					$this->echeckCount++;
 					//}
 					break;
-
+				case 'gfcnpcustompayment':
+					$this->isEcheckHiddenFlag = RGFormsModel::is_field_hidden($form, $field, RGForms::post('gform_field_values'));
+					$this->custompaymentField =& $field;
+					$custompayment = rgpost('gfp_' . $id);
+					if(is_array($custompayment)) {
+						$this->paymentnumber = $custompayment['paymentnumber'];
+					} else {
+						$this->paymentnumber = '';
+					}
+					$this->custompaymentCount++;
+					break;
+					
 				case 'total':
 					$this->total = GFCommon::to_number(rgpost("input_{$id}"));
 					$this->hasPurchaseFieldsFlag = true;
@@ -366,6 +383,7 @@ class GFCnpFormData {
 										}										
 										$item_custom['FieldValue'] = $inputs[$c];
 										$item_custom['FieldId'] = $id;
+										if($item_custom['FieldValue'] != '')
 										$list_array[] = $item_custom;
 								}
 							break;							

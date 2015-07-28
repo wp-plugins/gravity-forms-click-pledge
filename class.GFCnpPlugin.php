@@ -105,7 +105,10 @@ class GFCnpPlugin {
 			new GFCnpRecurringField($this);
 			
 			// hook into Gravity Forms to handle e-Check custom field
-			new GFCnpEcheckField($this);			
+			new GFCnpEcheckField($this);
+
+			// hook into Gravity Forms to handle Custom Payment custom field
+			new GFCnpCustompaymentField($this);			
 		}
 
 		if (is_admin()) {
@@ -137,16 +140,15 @@ class GFCnpPlugin {
 		
 		$meta = GFCnpData::get_feed_by_form($data['form']['id']);
 		
-		
 	// make sure all other validations passed
 		if ($data['is_valid'] && count($meta)) {
 			$formData = new GFCnpFormData($data['form']);
 			
 			if($formData->isCcHidden() || $formData->isEcHidden())
 				$hiddenmethod = false;
-			
 			//echo '<pre>';
 			//print_r($formData);
+			//var_dump(($formData->creditcardCount == 0 && $formData->echeckCount == 0 && $formData->custompaymentCount == 1 && $formData->firstName == '' && $formData->lastName == ''));
 			//die();
 			// make sure form hasn't already been submitted / processed			
 			if ($this->hasFormBeenProcessed($data['form'])) 
@@ -155,17 +157,29 @@ class GFCnpPlugin {
 				$formData->ccField['failed_validation'] = true;
 				$formData->ccField['validation_message'] = $this->getErrMsg(GFCNP_ERROR_ALREADY_SUBMITTED);				
 			}
-			elseif($formData->creditcardCount == 0 && $formData->echeckCount == 0) //Make sure that either Credit Card or e-Check details should enterd by user
+			elseif($formData->creditcardCount == 0 && $formData->echeckCount == 0 && $formData->custompaymentCount == 0) //Make sure that either Credit Card or e-Check details should enterd by user
 			{
-				$errmsg = "Error in the form. You should enter either credit card or e-Check details\n";
+				$errmsg = "Error in the form. You should enter either credit card or e-Check or C&P Custom details\n";
 				$formData->ccField['validation_message'] = $errmsg;
 				$data['is_valid'] = false;
 				$formData->ccField['failed_validation'] = true;
 			}
+			if($formData->creditcardCount == 0 && $formData->echeckCount == 0 && $formData->custompaymentCount == 1 && $formData->firstName == '' && $formData->lastName == '') {
+				$errmsg = "Error in the form. You should enter First Name and Last Name\n";
+				$formData->ccField['validation_message'] = $errmsg;
+				$data['is_valid'] = false;
+				$formData->ccField['failed_validation'] = true;
+			}
+			
+			if($formData->custompaymentCount != 0  && $formData->custompaymentField != '' && !RGFormsModel::is_field_hidden($data['form'], $formData->custompaymentField, array()) && isset($formData->recurring) && $formData->recurring != '' && ($formData->recurring['isRecurring'] == 'yes')) {
+				$data['is_valid'] = false;
+				$formData->custompaymentField['validation_message'] = 'Custom Payment type could not support recurring';
+				$formData->custompaymentField['failed_validation'] = true;
+			}
 
 			// make that this is the last page of the form and that we have a credit card field and something to bill
 			// and that credit card field is not hidden (which indicates that payment is being made another way)
-			else if (!$hiddenmethod && $formData->isLastPage() && ($formData->creditcardCount > 0 || $formData->echeckCount > 0)) {
+			else if (!$hiddenmethod && $formData->isLastPage() && ($formData->creditcardCount > 0 || $formData->echeckCount > 0 || $formData->custompaymentCount > 0)) {
 				
 				if (!$formData->hasPurchaseFields()) {
 					$data['is_valid'] = false;
@@ -202,12 +216,15 @@ class GFCnpPlugin {
 						
 						$data['is_valid'] = false;
 						if($formData->creditcardCount != 0) {
-						$formData->ccField['validation_message'] = $errmsg;
-						$formData->ccField['failed_validation'] = true;
+							$formData->ccField['validation_message'] = $errmsg;
+							$formData->ccField['failed_validation'] = true;
+						}else if($formData->custompaymentCount != 0) {
+							$formData->custompayment['validation_message'] = $errmsg;
+							$formData->custompayment['failed_validation'] = true;
 						}
 						else {
-						$formData->ecField['validation_message'] = $errmsg;
-						$formData->ecField['failed_validation'] = true;
+							$formData->ecField['validation_message'] = $errmsg;
+							$formData->ecField['failed_validation'] = true;
 						}
 					}
 					if($formData->echeckCount > 1)
@@ -216,12 +233,31 @@ class GFCnpPlugin {
 						
 						$data['is_valid'] = false;
 						if($formData->creditcardCount != 0) {
-						$formData->ccField['validation_message'] = $errmsg;
-						$formData->ccField['failed_validation'] = true;
+							$formData->ccField['validation_message'] = $errmsg;
+							$formData->ccField['failed_validation'] = true;
+						}else if($formData->custompaymentCount != 0) {
+							$formData->custompayment['validation_message'] = $errmsg;
+							$formData->custompayment['failed_validation'] = true;
 						}
 						else {
-						$formData->ecField['validation_message'] = $errmsg;
-						$formData->ecField['failed_validation'] = true;
+							$formData->ecField['validation_message'] = $errmsg;
+							$formData->ecField['failed_validation'] = true;
+						}
+					}
+					if($formData->custompaymentCount > 1)
+					{
+						$errmsg = "Error in the form. Form should have only one e-Check field. Please contact administrator\n";						
+						$data['is_valid'] = false;
+						if($formData->creditcardCount != 0) {
+							$formData->ccField['validation_message'] = $errmsg;
+							$formData->ccField['failed_validation'] = true;
+						}else if($formData->custompaymentCount != 0) {
+							$formData->custompayment['validation_message'] = $errmsg;
+							$formData->custompayment['failed_validation'] = true;
+						}
+						else {
+							$formData->ecField['validation_message'] = $errmsg;
+							$formData->ecField['failed_validation'] = true;
 						}
 					}
 					if($formData->shippingCount > 1)
@@ -293,16 +329,13 @@ class GFCnpPlugin {
 								$processtype = 'CareditCard';
 							} else if($formData->echeckCount > 0 && $formData->ecRouting != '') {
 								$processtype = 'eCheck';
+							}else if($formData->custompaymentCount > 0 && $formData->custompaymentCount != '') {
+								$processtype = 'CnpCustom';
 							}
 							
 							// check for required fields
 							if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
-							/*	$expires = DateTime::createFromFormat('my', $formData->ccExpMonth.$formData->ccExpYear);
-							$now     = new DateTime();
-							if ($expires < $now) {
-								$formData->ccField['validation_message'] = 'Credit Card Expired';
-								$formData->ccField['failed_validation'] = true;
-							}*/
+							
 							if(strlen($formData->ccCVN) > 4) {
 								$formData->ccField['validation_message'] = 'Security Code should contain 3 or 4 digits only';
 								$formData->ccField['failed_validation'] = true;
@@ -323,7 +356,9 @@ class GFCnpPlugin {
 								'ccName' => $this->getErrMsg(GFCNP_ERROR_REQ_CARD_HOLDER),
 								'ccNumber' => $this->getErrMsg(GFCNP_ERROR_REQ_CARD_NAME),
 							);
-						} else {
+						} else if($formData->custompaymentCount != 0 && $processtype == 'CnpCustom') {
+						
+						}else {
 							$required = array(
 								'ecRouting' => $this->getErrMsg(GFCNP_ERROR_REQ_ecRouting),
 								'ecCheck' => $this->getErrMsg(GFCNP_ERROR_REQ_ecCheck),
@@ -334,6 +369,7 @@ class GFCnpPlugin {
 								'ecIdtype' => $this->getErrMsg(GFCNP_ERROR_REQ_ecIdtype),
 							);
 						}
+						
 						foreach ($required as $name => $message) {
 							if (empty($formData->$name)) {
 								$data['is_valid'] = false;
@@ -342,6 +378,11 @@ class GFCnpPlugin {
 									if (!empty($formData->ccField['validation_message']))
 										$formData->ccField['validation_message'] .= '<br />';
 									$formData->ccField['validation_message'] .= $message;
+								} else if($formData->custompaymentCount != 0 && $processtype == 'CnpCustom') {
+									$formData->custompayment['failed_validation'] = true;
+									if (!empty($formData->custompayment['validation_message']))
+										$formData->custompayment['validation_message'] .= '<br />';
+									$formData->custompayment['validation_message'] .= $message;
 								} else {
 									$formData->ecField['failed_validation'] = true;
 									if (!empty($formData->ecField['validation_message']))
@@ -450,68 +491,91 @@ class GFCnpPlugin {
 			$cnp->amount = $formData->total;
 			
 			$response = $cnp->processPayment();
-			
-			$ResultCode = $response->OperationResult->ResultCode;
-			$transation_number = $response->OperationResult->TransactionNumber;
-			$VaultGUID = $response->OperationResult->VaultGUID; 
-			if ($ResultCode == '0') {
-				// transaction was successful, so record transaction number and continue								
-				$this->txResult = array (
-					'transaction_id' => $VaultGUID,
-					'payment_status' => 'Approved',
-					'payment_date' => date('Y-m-d H:i:s'),
-					'payment_amount' => $cnp->amount,
-					'transaction_type' => 1,
-					'authcode' => $VaultGUID,
-				);
-				//$data['is_valid'] = false;				
-			}
-			else {
+			if($response === FALSE) {
 				$data['is_valid'] = false;
-				$formData->ccField['failed_validation'] = true;
-				if( in_array( $ResultCode, array( 2051,2052,2053 ) ) )
-				{
-					$AdditionalInfo = $response->OperationResult->AdditionalInfo;
+				$AdditionalInfo = 'Unable to connect to Click & Pledge. Please try after some time';
+				if($formData->creditcardCount != 0 && $formData->ccField != '' && !RGFormsModel::is_field_hidden($data['form'], $formData->ccField, array())) {
+					$formData->ccField['failed_validation'] = true;					
+					$formData->ccField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$AdditionalInfo}");
+				} else if($formData->echeckCount != 0  && $formData->ecField != '' && !RGFormsModel::is_field_hidden($data['form'], $formData->ecField, array())) {
+					$formData->ecField['failed_validation'] = true;
+					$formData->ecField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$AdditionalInfo}");
 				}
-				else
-				{
-					if( isset( $this->responsecodes[$ResultCode] ) )
+				else if($formData->custompaymentCount != 0  && $formData->custompaymentField != '' && !RGFormsModel::is_field_hidden($data['form'], $formData->custompaymentField, array())) {
+					$formData->custompaymentField['failed_validation'] = true;
+					$formData->custompaymentField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$AdditionalInfo}");
+				}
+			} else {
+				$ResultCode = $response->OperationResult->ResultCode;
+				$transation_number = $response->OperationResult->TransactionNumber;
+				$VaultGUID = $response->OperationResult->VaultGUID; 
+				if ($ResultCode == '0') {
+					// transaction was successful, so record transaction number and continue								
+					$this->txResult = array (
+						'transaction_id' => $VaultGUID,
+						'payment_status' => 'Approved',
+						'payment_date' => date('Y-m-d H:i:s'),
+						'payment_amount' => $cnp->amount,
+						'transaction_type' => 1,
+						'authcode' => $VaultGUID,
+					);
+					//$data['is_valid'] = false;				
+				}
+				else {
+					$data['is_valid'] = false;
+					$formData->ccField['failed_validation'] = true;
+					if( in_array( $ResultCode, array( 2051,2052,2053 ) ) )
 					{
-						$AdditionalInfo = $this->responsecodes[$ResultCode];
+						$AdditionalInfo = $response->OperationResult->AdditionalInfo;
 					}
 					else
 					{
-						$AdditionalInfo = 'Unknown error';
+						if( isset( $this->responsecodes[$ResultCode] ) )
+						{
+							$AdditionalInfo = $this->responsecodes[$ResultCode];
+						}
+						else
+						{
+							$AdditionalInfo = 'Unknown error';
+						}
 					}
+					
+					if($formData->creditcardCount != 0 && $formData->ccField != '' && !RGFormsModel::is_field_hidden($data['form'], $formData->ccField, array())) {
+						$formData->ccField['failed_validation'] = true;
+						$formData->ccField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$AdditionalInfo}");
+					} else if($formData->echeckCount != 0  && $formData->ecField != '' && !RGFormsModel::is_field_hidden($data['form'], $formData->ecField, array())) {
+						$formData->ecField['failed_validation'] = true;
+						$formData->ecField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$AdditionalInfo}");
+					}
+					else if($formData->custompaymentCount != 0  && $formData->custompaymentField != '' && !RGFormsModel::is_field_hidden($data['form'], $formData->custompaymentField, array())) {
+						$formData->custompaymentField['failed_validation'] = true;
+						$formData->custompaymentField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$AdditionalInfo}");
+					}
+					
+					$this->txResult = array (
+						'payment_status' => 'Failed',
+					);
 				}
-				
-				if($formData->creditcardCount != 0) {
-				$formData->ccField['failed_validation'] = true;
-				$formData->ccField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$AdditionalInfo}");
-				} else {
-				$formData->ecField['failed_validation'] = true;
-				$formData->ecField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$AdditionalInfo}");
-				}
-				
-				$this->txResult = array (
-					'payment_status' => 'Failed',
-				);
 			}
 		}
-		catch (GFCnpException $e) {
-			
+		catch (GFCnpException $e) {			
 			$data['is_valid'] = false;
 			$this->txResult = array (
 				'payment_status' => 'Failed',
-			);
-			if($formData->creditcardCount != 0) {
-			$formData->ccField['failed_validation'] = true;
-			$formData->ccField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$e->getMessage()}");
-			} else {
-			$formData->ecField['failed_validation'] = true;
-			$formData->ecField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$e->getMessage()}");
+			);			
+						
+			if($formData->creditcardCount != 0 && $formData->ccField != '' && !RGFormsModel::is_field_hidden($data['form'], $formData->ccField, array())) {
+				$formData->ccField['failed_validation'] = true;
+				$formData->ccField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$e->getMessage()}");			
+			} 
+			else if($formData->echeckCount != 0  && $formData->ecField != '' && !RGFormsModel::is_field_hidden($data['form'], $formData->ecField, array())) {
+				$formData->ecField['failed_validation'] = true;
+				$formData->ecField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$e->getMessage()}");				
 			}
-			
+			else if($formData->custompaymentCount != 0  && $formData->custompaymentField != '' && !RGFormsModel::is_field_hidden($data['form'], $formData->custompaymentField, array())) {
+				$formData->custompaymentField['failed_validation'] = true;
+				$formData->custompaymentField['validation_message'] = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$e->getMessage()}");			
+			}			
 			$errmsg = nl2br($this->getErrMsg(GFCNP_ERROR_FAIL) . ":\n{$e->getMessage()}");
 		}
 

@@ -125,11 +125,21 @@ class GFCnpPayment {
 	private function validate($options, $formData) {
 		$errmsg = '';
 		$adminerrors = false;
-		
+		//echo '<pre>';
+		//print_r($formData);
+		//die();
+		if($formData->creditcardCount == 0 && $formData->echeckCount == 0 && $formData->custompaymentCount == 0) {
+			$errmsg .= "Payment form should have 'Credit Card', 'eCheck', 'C&P Custom' for processing. Please contact administrator\n";
+			$adminerrors = true;
+		}
+		if($formData->creditcardCount == 0 && $formData->echeckCount == 0 && $formData->custompaymentCount == 1 && $formData->firstName == '' && $formData->lastName == '') {
+			$errmsg .= "Please enter First name and last name.\n";
+			$adminerrors = true;
+		}
 		$form_currency = GFCommon::get_currency();
-		if(!in_array($form_currency, array('USD', 'EUR', 'CAD', 'GBP')))
+		if(!in_array($form_currency, array('USD', 'EUR', 'CAD', 'GBP', 'HKD')))
 		{
-			$errmsg .= "We are supporting 'USD', 'EUR', 'CAD', 'GBP'. Check your API credentials and make sure your currency is supported.\n";
+			$errmsg .= "We are supporting 'USD', 'EUR', 'CAD', 'GBP', 'HKD'. Check your API credentials and make sure your currency is supported.\n";
 			$adminerrors = true;
 		}
 		if (strlen($this->AccountID) === 0) {
@@ -140,21 +150,13 @@ class GFCnpPayment {
 			$errmsg .= "GUID cannot be empty. Please contact administrator\n";
 			$adminerrors = true;
 		}
-		/*
-		if($formData->creditcardCount != 0) {
-			if ($formData->firstName == '' || $formData->lastName == '') {
-				if($formData->firstName == '')
-				$errmsg .= "Form should contain First Name field and you should enter First Name. Please contact administrator.\n";
-				if($formData->lastName == '')
-				$errmsg .= "Form should contain Last Name field and you should enter Last Name. Please contact administrator.\n";
-				$adminerrors = true;
-			}
-		}
-		*/
 		
-		if($formData->creditcardCount != 0) {
-			$firstName = $lastName = $mess = '';
-			if ($formData->firstName == '' && $formData->lastName == '') {
+		if($formData->firstName == '' && $formData->lastName == '') {
+			if($formData->namefieldCount != 0) {
+				$errmsg .= 'Please enter First Name and Last Name';
+				$adminerrors = true;
+			} else if($formData->creditcardCount != 0) {
+				$firstName = $lastName = $mess = '';				
 				if($formData->ccName != '') {
 					$parts = explode(' ', $formData->ccName);
 					if(count($parts) > 1) {
@@ -163,26 +165,40 @@ class GFCnpPayment {
 					} else {
 						$firstName = $parts[0];
 					}
+					$mess = 'Name on card should be in the form of Fist Name Last Name';
+				} else {
+					$firstName = $formData->firstName;
+					$lastName =  $formData->lastName;
+					if($firstName == '')
+					$mess = "Please enter First Name.\n";
+					if($lastName == '')
+					$mess = "Please enter Last Name.\n";
 				}
-				$mess = 'Name of card should be in the form of Fist Name Last Name';				
+				if($firstName == '' || $lastName == '') {
+					$adminerrors = true;
+					$errmsg .= $mess;
+				}				
+			} else if($formData->echeckCount != 0) {
+				if($formData->ecName == '') {
+					$errmsg .= "Please enter account name\n";
+					$adminerrors = true;
+				} else {
+					$parts = explode(' ', $formData->ecName);
+					if(count($parts) == 1) {
+						$adminerrors = true;
+						$errmsg .= 'Name of card should be in the form of Fist Name Last Name';
+					}
+				}
 			} else {
-				$firstName = $formData->firstName;
-				$lastName =  $formData->lastName;
-				if($firstName == '')
-				$mess = "Please enter First Name.\n";
-				if($lastName == '')
-				$mess = "Please enter Last Name.\n";
-			}
-			if($firstName == '' || $lastName == '') {
 				$adminerrors = true;
-				$errmsg .= $mess;
-			}			
+				$errmsg .= 'Your Form don\'t have First Name and Last Name fields which are required to process with Click & Pledge. Please contact administrator.';
+			}				
 		}
 		
 		if(isset($formData->shippingfields) && count($formData->shippingfields) && $formData->address_street == '') {
 			$errmsg .= "Form contains shipping fields but do not have shipping address. Please contact administrator.\n";
 			$adminerrors = true;
-		}
+		}		
 		
 		if(!$adminerrors) {
 		/*
@@ -257,6 +273,8 @@ class GFCnpPayment {
 			$processtype = 'CareditCard';
 		} else if($formData->echeckCount > 0 && $formData->ecRouting != '') {
 			$processtype = 'eCheck';
+		} else if($formData->custompaymentCount > 0) {
+			$processtype = 'custompayment';
 		}
 		
 		if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
@@ -316,7 +334,7 @@ class GFCnpPayment {
 			if (strlen($formData->ecRouting) > 9)
 				$errmsg .= "Routing Number should be max 9 digits only.\n";
 		}
-		}
+		} 
 		
 		if (strlen($errmsg) > 0) {
 			throw new GFCnpException($errmsg);
@@ -359,7 +377,7 @@ class GFCnpPayment {
 	{
 		//echo '<pre>';
 		//print_r($orderplaced);
-		//die();
+		//die('class.GFCnpPayment.php');
 		$dom = new DOMDocument('1.0', 'UTF-8');
 		$root = $dom->createElement('CnPAPI', '');
 		$root->setAttribute("xmlns","urn:APISchema.xsd");
@@ -380,7 +398,7 @@ class GFCnpPayment {
 		$applicationname=$dom->createElement('Name','CnP_PaaS_FM_GravityForm'); 
 		$applicationid=$application->appendChild($applicationname);
 
-		$applicationversion=$dom->createElement('Version','2.100.009');
+		$applicationversion=$dom->createElement('Version','2.2.0');
 		$applicationversion=$application->appendChild($applicationversion);
 
 		$request = $dom->createElement('Request', '');
@@ -645,6 +663,8 @@ class GFCnpPayment {
 			$processtype = 'CareditCard';
 		} else if($orderplaced->echeckCount > 0 && $orderplaced->ecRouting != '') {
 			$processtype = 'eCheck';
+		} else {
+			$processtype = 'Custom';
 		}
 		$paymentmethod=$dom->createElement('PaymentMethod','');
 		$paymentmethod=$cardholder->appendChild($paymentmethod);
@@ -669,7 +689,7 @@ class GFCnpPayment {
 			$credit_expdate=$dom->createElement('ExpirationDate',str_pad($orderplaced->ccExpMonth,2,'0',STR_PAD_LEFT) ."/" .substr($orderplaced->ccExpYear,2,2));
 			$credit_expdate=$creditcard->appendChild($credit_expdate);
 		} 
-		else 
+		else if($orderplaced->echeckCount != 0 && $processtype == 'echeck')
 		{
 			
 			$payment_type=$dom->createElement('PaymentType','Check');
@@ -698,13 +718,19 @@ class GFCnpPayment {
 			
 			$ecIdtype=$dom->createElement('IdType',$orderplaced->ecIdtype);
 			$ecIdtype=$echeck->appendChild($ecIdtype);
-			/*
-			$IdNumber=$dom->createElement('IdNumber',$this->safeString( $orderplaced->ecIdNumber, 30));
-			$IdNumber=$creditcard->appendChild($IdNumber);
-			
-			$IdStateCode=$dom->createElement('IdStateCode', $orderplaced->ecIdStateCode);
-			$IdStateCode=$creditcard->appendChild($IdStateCode);
-			*/
+		} else {
+			$payment_type=$dom->createElement('PaymentType','CustomPaymentType');
+			$payment_type=$paymentmethod->appendChild($payment_type);			
+			$CustomPayment=$dom->createElement('CustomPaymentType','');
+			$CustomPayment=$paymentmethod->appendChild($CustomPayment);
+			$customlabel = RGFormsModel::get_label($orderplaced->custompaymentField);
+			if($customlabel == '') $customlabel = 'Custom Payment';
+			$CustomPaymentName=$dom->createElement('CustomPaymentName',$this->safeString($customlabel,50));
+			$CustomPaymentName=$CustomPayment->appendChild($CustomPaymentName);
+			if($orderplaced->paymentnumber != '') {
+				$CustomPaymentNumber=$dom->createElement('CustomPaymentNumber',$this->safeString($orderplaced->paymentnumber,50));
+				$CustomPaymentNumber=$CustomPayment->appendChild($CustomPaymentNumber);
+			}
 		}
 		
 		$total_calculate = 0;
