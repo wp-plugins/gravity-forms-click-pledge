@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
-Version 2.2.0
+Version 2.100.010
 - Added new features to add custom payment type
 - Allow Zero amount for processing
 
