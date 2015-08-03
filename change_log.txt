@@ -1,4 +1,7 @@
 -----------------------------------------------------------------------------
+Version 2.100.011
+- Added white screen issue ( Ref:http://forums.clickandpledge.com/node/18203 )
+
 Version 2.100.010
 - Added new features to add custom payment type
 - Allow Zero amount for processing

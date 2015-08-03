@@ -6,7 +6,7 @@ Author URI: http://clickandpledge.com/
 Tags: gravityforms, gravity forms, gravity, cnp, clickandpledge, payment gateway, payment module, ecommerce, online payments, Click & Pledge, Click&Pledge, Click, Pledge, Salesforce, Payment, Kamran
 Requires at least: 3.7.1
 Tested up to: 4.2.2
-Stable tag: 2.100.010
+Stable tag: 2.100.011
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -54,6 +54,9 @@ Gravity Forms will now display the Credit Card and Recurring fields under Pricin
 7. Credit Card Fields
 8. eCheck Fields
 == Changelog ==
+= 2.100.011 =
+* Fixed white screen issue ( Ref:http://forums.clickandpledge.com/node/18203 )
+
 = 2.100.010 =
 * Added new features to add custom payment type
 * Allow Zero amount for processing
