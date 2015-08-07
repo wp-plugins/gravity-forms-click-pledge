@@ -53,6 +53,7 @@ class GFCnpFormData {
 	public $customfields = array();
 	public $needtovalidatefields = array();
 	public $shippingfields = array();
+	public $couponfields = array();
 	
 	//Duplicate fields checking
 	public $creditcardCount = 0;
@@ -295,9 +296,24 @@ class GFCnpFormData {
 					$this->total = GFCommon::to_number(rgpost("input_{$id}"));
 					$this->hasPurchaseFieldsFlag = true;
 					break;
-				
-
+					
+				case 'coupon':					
+					$coupondetails = json_decode(rgpost("gf_coupons_" . $field['formId']));		
+					foreach($coupondetails as $coupon => $details) {
+						$item_custom['amount'] = $details->amount;
+						$item_custom['type'] = $details->type;						
+						$item_custom['name'] = $details->name;
+						$item_custom['code'] = $details->code;
+						$item_custom['can_stack'] = $details->can_stack;
+						$item_custom['usage_count'] = $details->usage_count;
+						$this->couponfields[] = $item_custom;
+					}					
+					break;
+					
 				case GFCNP_FIELD_RECURRING:
+					//echo $this->recurringCount.'<br>';
+					//echo '<pre>';
+					//print_r($field);
 					$this->recurringCount++;
 					// only pick it up if it isn't hidden
 					if (!RGFormsModel::is_field_hidden($form, $field, RGForms::post('gform_field_values'))) {
@@ -500,9 +516,7 @@ class GFCnpFormData {
 			switch ($field["inputType"]) {
 				case 'singleproduct':
 				case 'calculation':
-					 //echo '<pre>';
-					 //print_r(GF_Field::sanitize_settings_conditional_logic($field['conditionalLogic']));
-					 //die();
+					 
 					 $pricecalculation = GFCommon::to_number(rgpost("input_{$id}_2"));
 					 $qtycalculation = GFCommon::to_number(rgpost("input_{$id}_3"));
 					if($qtycalculation > 0 && $pricecalculation != '') {

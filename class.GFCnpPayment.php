@@ -398,7 +398,7 @@ class GFCnpPayment {
 		$applicationname=$dom->createElement('Name','CnP_PaaS_FM_GravityForm'); 
 		$applicationid=$application->appendChild($applicationname);
 
-		$applicationversion=$dom->createElement('Version','2.100.012');
+		$applicationversion=$dom->createElement('Version','2.100.013');
 		$applicationversion=$application->appendChild($applicationversion);
 
 		$request = $dom->createElement('Request', '');
@@ -1082,8 +1082,36 @@ class GFCnpPayment {
 			}	
 		}
 		
+		$coupontotal = $coupontotal_grandtotal = $coupontotal_grandtotal_calculate = 0;
+		$couponcodes = '';		
+		
+		if(count($orderplaced->couponfields) > 0) {			
+			foreach($orderplaced->couponfields as $coupon) {				
+				$coupontotal += number_format(GFCommon::to_number(GFCoupons::get_discount($coupon,$orderplaced->total)),2, '.', '');
+				$couponcodes .= $coupon['code'] . ';';
+			}
+			$coupontotal_grandtotal = $coupontotal;
+			$coupontotal_grandtotal_calculate = $coupontotal;
+			$coupontotal = $coupontotal * 100;			
+		}
+		
+		//echo '<pre>';
+		//print_r($orderplaced);
+		//echo $coupontotal;
+		//die();
 		$trans_totals=$dom->createElement('CurrentTotals','');
 		$trans_totals=$transation->appendChild($trans_totals);
+		
+		if($coupontotal > 0) {		
+			if(isset($orderplaced->recurring) && $orderplaced->recurring['isRecurring'] == 'yes' && $orderplaced->recurring['RecurringMethod'] == 'Installment') {
+				$coupontotal_grandtotal_calculate = $this->number_format($coupontotal_grandtotal / $orderplaced->recurring['Installments'], 2, '.', '');
+				$total_discount=$dom->createElement('TotalDiscount', $coupontotal_grandtotal_calculate * 100);
+				$total_discount=$trans_totals->appendChild($total_discount);
+			} else {
+				$total_discount=$dom->createElement('TotalDiscount', $coupontotal);
+				$total_discount=$trans_totals->appendChild($total_discount);
+			}
+		}
 		
 		if(isset($orderplaced->shippingfields) && count($orderplaced->shippingfields)) {
 			$total_ship=$dom->createElement('TotalShipping',$ShippingValue*100);
@@ -1106,9 +1134,25 @@ class GFCnpPayment {
 		}
 		
 		
-		$GrandTotal = $Total + $ShippingValue;
+		$GrandTotal = ($Total + $ShippingValue) - $coupontotal_grandtotal_calculate;
 		$total_amount=$dom->createElement('Total',($GrandTotal*100));
 		$total_amount=$trans_totals->appendChild($total_amount);
+		
+		if(count($coupontotal) > 0 && $couponcodes != '') {			
+			$trans_coupon=$dom->createElement('CouponCode',$this->safeString(substr($couponcodes,0,-1), 50));
+			$trans_coupon=$transation->appendChild($trans_coupon);		
+		}
+		
+		if($coupontotal > 0) {
+			if(isset($orderplaced->recurring) && $orderplaced->recurring['isRecurring'] == 'yes' && $orderplaced->recurring['RecurringMethod'] == 'Installment') {				
+				$coupontotal_grandtotal_calculate = $this->number_format($coupontotal_grandtotal / $orderplaced->recurring['Installments'], 2, '.', '');		
+				$trans_coupon_discount=$dom->createElement('TransactionDiscount', $coupontotal_grandtotal_calculate * 100);
+				$trans_coupon_discount=$transation->appendChild($trans_coupon_discount);				
+			} else {
+				$trans_coupon_discount=$dom->createElement('TransactionDiscount',$this->number_format($coupontotal, 2, '.', ''));
+				$trans_coupon_discount=$transation->appendChild($trans_coupon_discount);
+			}
+		}
 		
 		$strParam =$dom->saveXML();		
 		//echo '<pre>';

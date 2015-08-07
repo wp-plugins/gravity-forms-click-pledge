@@ -1,4 +1,7 @@
 -----------------------------------------------------------------------------
+Version 2.100.013
+- Coupons Add-on Support added ( Ref:http://forums.clickandpledge.com/node/18271 )
+
 Version 2.100.012
 - Fixed white screen issue ( Ref:http://forums.clickandpledge.com/node/18203 )
 
