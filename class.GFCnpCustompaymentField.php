@@ -266,7 +266,7 @@ class GFCnpCustompaymentField {
 			$input = "<div class='ginput_complex ginput_container gfcnp_custompayment_complex $css' id='input_{$field['id']}'>";
 			$isrecurring = empty($isrecurr) ? '' : ' checked';
 			$disabled_text = (IS_ADMIN && RG_CURRENT_VIEW != "entry") ? " disabled='disabled'" : "";
-			$input .= "Payment Number <span class='gfield_required'>*</span>: <input type='text' name='gfp_{$field['id']}[paymentnumber]' id='gfp_{$field['id']}'  value='{$custompayment['paymentnumber']}' class='custompayment_paymentnumber'$isrecurring$disabled_text><br>";			
+			$input .= "Payment Number : <input type='text' name='gfp_{$field['id']}[paymentnumber]' id='gfp_{$field['id']}'  value='{$custompayment['paymentnumber']}' class='custompayment_paymentnumber'$isrecurring$disabled_text><br>";			
 			
 			$id = $field["id"];
 			$field_id = IS_ADMIN || $form_id == 0 ? "input_{$id}" : "input_{$form_id}_{$id}";	

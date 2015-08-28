@@ -185,7 +185,7 @@ class GFCnpAdmin {
 	*/
 	public static function addPluginDetailsLinks($links, $file) {
 		if ($file == GFCNP_PLUGIN_NAME) {
-			$links[] = '<a href="http://wordpress.org/support/plugin/gravityforms-cnp">' . __('Get help') . '</a>';
+			$links[] = '<a href="https://wordpress.org/support/plugin/gravity-forms-click-pledge" target="_blank">' . __('Get help') . '</a>';
 		}
 
 		return $links;
@@ -775,7 +775,7 @@ HTML;
 
             }
 		</script>
-		<?php
+<?php
 	}
 	protected static function has_access($required_permission){
 

@@ -199,19 +199,51 @@ class GFCnpPlugin {
 						}
 					}
 					
-					$processtype = 'CareditCard';
-					if($formData->creditcardCount > 0 && $formData->ccName != '' && $formData->ccNumber != '') {
-						$processtype = 'CareditCard';
-					} else if($formData->echeckCount > 0 && $formData->ecRouting != '') {
+					$processtype = 'CreditCard';
+					if($formData->creditcardCount > 0 && $formData->ccName == NULL && $formData->ccNumber == NULL) {
+					//echo '1';
+						$processtype = 'CreditCard';
+					} else if($formData->echeckCount > 0 && $formData->ecRouting == NULL) {
+					//echo '2';
 						$processtype = 'eCheck';
-					}else if($formData->custompaymentCount > 0 && $formData->custompaymentCount != '') {
+					}else if($formData->custompaymentCount > 0 && $formData->custompaymentCount == NULL) {
+						//echo $formData->custompaymentCount.'-'.$formData->echeckCount.'-'.$formData->creditcardCount;
 						$processtype = 'CnpCustom';
 					}
+					function in_multiarray($str1,$str2,$str3, $array)
+						{
+							$exists = false;
+						
+							if (is_array($array)) {
+							   foreach ($array as $arr):
+							   	   if (in_array($str1, array_map('strtolower',$arr)) || in_array($str2, array_map('strtolower',$arr)) || in_array($str3, array_map('strtolower',$arr))) {
+								   		$exists = $arr;
+								   }
+							   endforeach;
+							} else {
+								$array . ' = ' . $str . "\n";
+								if (strpos($array, $str) !== false) $exists = true;
+							}
+						
+							return $exists;
+						}
+					$new_arry =  in_multiarray('payment method','select payment type','select payment method', $formData->customfields);
+						 // do something if the given value does not exist in the array
 					
+					if (is_array($new_arry)) {
+						if ( strtolower($new_arry['FieldValue']) == 'creditcard' || strtolower($new_arry['FieldValue']) == 'credit card' ) {
+							$processtype = 'CreditCard';
+						} else if (strtolower($new_arry['FieldValue']) == 'echeck' || strtolower($new_arry['FieldValue']) == 'e check') {
+							$processtype = 'eCheck';
+						} else {//($formData->customfields[0]['FieldValue'] == 'Custom' ) {
+							$processtype = 'CnpCustom';
+						}
+					}
+					//die('i am here'.$processtype);
 					if(!extension_loaded('soap')) {
 						$errmsg = "SOAP Client is need to process C&P Transaction. Please contact administrator.\n";
 						$data['is_valid'] = false;
-						if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+						if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 							$formData->ccField['validation_message'] = $errmsg;
 							$formData->ccField['failed_validation'] = true;
 						} else if($formData->creditcardCount != 0 && $processtype == 'CnpCustom') {
@@ -228,7 +260,7 @@ class GFCnpPlugin {
 						$errmsg = "Error in the form. Form should have only one Credit card field. Please contact administrator\n";
 						
 						$data['is_valid'] = false;
-						if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+						if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 							$formData->ccField['validation_message'] = $errmsg;
 							$formData->ccField['failed_validation'] = true;
 						}else if($formData->custompaymentCount != 0 && $processtype == 'CnpCustom') {
@@ -245,7 +277,7 @@ class GFCnpPlugin {
 						$errmsg = "Error in the form. Form should have only one e-Check field. Please contact administrator\n";
 						
 						$data['is_valid'] = false;
-						if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+						if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 							$formData->ccField['validation_message'] = $errmsg;
 							$formData->ccField['failed_validation'] = true;
 						}else if($formData->custompaymentCount != 0 && $processtype == 'CnpCustom') {
@@ -261,7 +293,7 @@ class GFCnpPlugin {
 					{
 						$errmsg = "Error in the form. Form should have only one e-Check field. Please contact administrator\n";						
 						$data['is_valid'] = false;
-						if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+						if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 							$formData->ccField['validation_message'] = $errmsg;
 							$formData->ccField['failed_validation'] = true;
 						}else if($formData->custompaymentCount != 0 && $processtype == 'CnpCustom') {
@@ -278,7 +310,7 @@ class GFCnpPlugin {
 						$errmsg = "Error in the form. Form should have only one Shipping field. Please contact administrator\n";
 						
 						$data['is_valid'] = false;
-						if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+						if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 							$formData->ccField['validation_message'] = $errmsg;
 							$formData->ccField['failed_validation'] = true;
 						}else if($formData->custompaymentCount != 0 && $processtype == 'CnpCustom') {
@@ -295,7 +327,7 @@ class GFCnpPlugin {
 						$errmsg = "Error in the form. Form should have only one recurring field. Please contact administrator\n";
 						
 						$data['is_valid'] = false;
-						if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+						if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 							$formData->ccField['validation_message'] = $errmsg;
 							$formData->ccField['failed_validation'] = true;
 						}else if($formData->custompaymentCount != 0 && $processtype == 'CnpCustom') {
@@ -309,10 +341,10 @@ class GFCnpPlugin {
 					}
 					if (count($formData->productdetails) == 0 && $hasproducts) 
 					{
-						$errmsg = "Please select at least one product.\n";
+						$errmsg = "Please select atleast one product.\n";
 						
 						$data['is_valid'] = false;
-						if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+						if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 							$formData->ccField['validation_message'] = $errmsg;
 							$formData->ccField['failed_validation'] = true;
 						}else if($formData->custompaymentCount != 0 && $processtype == 'CnpCustom') {
@@ -328,9 +360,9 @@ class GFCnpPlugin {
 					//Here we need to validate quantity field					
 					if ($formData->amount == 0 && count($formData->productdetails) == 0 && $hasproducts) 
 					{
-						$errmsg = "Please select at least one product.\n";						
+						$errmsg = "Please select atleast one product.\n";						
 						$data['is_valid'] = false;
-						if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+						if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 							$formData->ccField['validation_message'] = $errmsg;
 							$formData->ccField['failed_validation'] = true;
 						} else if($formData->custompaymentCount != 0 && $processtype == 'CnpCustom') {
@@ -352,7 +384,7 @@ class GFCnpPlugin {
 							
 							
 							// check for required fields
-							if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+							if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 							
 							if(strlen($formData->ccCVN) > 4) {
 								$formData->ccField['validation_message'] = 'Security Code should contain 3 or 4 digits only';
@@ -391,7 +423,7 @@ class GFCnpPlugin {
 						foreach ($required as $name => $message) {
 							if (empty($formData->$name)) {
 								$data['is_valid'] = false;
-								if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+								if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 									$formData->ccField['failed_validation'] = true;
 									if (!empty($formData->ccField['validation_message']))
 										$formData->ccField['validation_message'] .= '<br />';
@@ -556,8 +588,9 @@ class GFCnpPlugin {
 						{
 							$AdditionalInfo = $this->responsecodes[$ResultCode];
 						}
-						else
-						{
+						else if ($response == 'Item-0'){
+							$AdditionalInfo= 'Select atleast one item.';
+						} else {
 							$AdditionalInfo = 'Unknown error';
 						}
 					}

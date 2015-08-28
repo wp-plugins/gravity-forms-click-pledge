@@ -150,7 +150,6 @@ class GFCnpRecurringField {
 					<div id="label_isthisrecurring">
 						Is this a recurring payment:<input type="text" id="gfcnp_label_isthisrecurring" onchange="GFCnpRecurring.FieldSet(this)"><br>
 					</div>
-					
 					<div id="label_periods">
 						Periodicity&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:<input type="text" id="gfcnp_label_periods" onchange="GFCnpRecurring.FieldSet(this)"><br>
 					</div>

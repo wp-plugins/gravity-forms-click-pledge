@@ -1,4 +1,9 @@
 -----------------------------------------------------------------------------
+Version 2.100.014
+- Coupons Add-on Fixed Quantity issue.
+- Fixed Recurring issue.
+- Fixed Conditional Logic payment methods error handling
+
 Version 2.100.013
 - Coupons Add-on Support added ( Ref:http://forums.clickandpledge.com/node/18271 )
 

@@ -88,8 +88,6 @@ class GFCnpFormData {
 	* @param array $form
 	*/
 	private function loadForm(&$form) {
-		
-		
 		foreach ($form['fields'] as &$field) {
 			$id = $field['id'];
 			$checkbox_array = $multiselect_array = $list_array = array();
@@ -298,29 +296,31 @@ class GFCnpFormData {
 					break;
 					
 				case 'coupon':					
-					$coupondetails = json_decode(rgpost("gf_coupons_" . $field['formId']));		
+					$coupondetails = json_decode(rgpost("gf_coupons_" . $field['formId']));
 					foreach($coupondetails as $coupon => $details) {
-						$item_custom['amount'] = $details->amount;
-						$item_custom['type'] = $details->type;						
-						$item_custom['name'] = $details->name;
-						$item_custom['code'] = $details->code;
-						$item_custom['can_stack'] = $details->can_stack;
-						$item_custom['usage_count'] = $details->usage_count;
-						$this->couponfields[] = $item_custom;
-					}					
+						$item_coupon['amount'] = $details->amount;
+						$item_coupon['type'] = $details->type;						
+						$item_coupon['name'] = $details->name;
+						$item_coupon['code'] = $details->code;
+						$item_coupon['can_stack'] = $details->can_stack;
+						$item_coupon['usage_count'] = $details->usage_count;
+						if ($details->type == 'percentage' && $details->amount != 100) {
+							$this->amount = $this->amount - ($this->amount * $item_coupon['amount'])/100;
+						} else if ($details->type == 'percentage' && $details->amount == 100) {
+							$this->amount = 0;
+						}
+						if ($details->type == 'flat') {
+							$this->amount = $this->amount - $item_coupon['amount'];
+						}
+						$this->couponfields[] = $item_coupon;
+					}	
 					break;
 					
 				case GFCNP_FIELD_RECURRING:
-					//echo $this->recurringCount.'<br>';
-					//echo '<pre>';
-					//print_r($field);
 					$this->recurringCount++;
 					// only pick it up if it isn't hidden
 					if (!RGFormsModel::is_field_hidden($form, $field, RGForms::post('gform_field_values'))) {
 						$this->recurring = GFCnpRecurringField::getPost($id);
-						//print_r(GFCnpRecurringField::getPost($id));
-						//print_r($_POST);
-						//die();
 					}
 					break;
 
@@ -490,8 +490,8 @@ class GFCnpFormData {
 		}
 	
 		// if form didn't pass the total, pick it up from calculated amount
-		if ($this->total == 0)
-			$this->total = $this->amount;
+		if ($this->total < 0)
+		   $this->total = $this->amount = 0;
 	}
 
 	/**
@@ -526,6 +526,7 @@ class GFCnpFormData {
 						$item['Quantity'] = $qtycalculation;
 						$item['UnitPrice'] = $pricecalculation;
 						$item['productField'] = $field["productField"];
+						$this->amount = $pricecalculation * $qtycalculation;
 						$t = $item['productField'];
 						if($t)
 						$item['OptionValue'] = rgpost("input_{$t}");						
@@ -546,9 +547,9 @@ class GFCnpFormData {
 					if($qtyhiddenproduct > 0 && is_numeric($pricehiddenproduct)) {
 						$isProduct = true;					
 						$item['ItemName'] = $field["label"];
-						$item['ItemID'] = $field["id"];
-						
+						$item['ItemID'] = $field["id"];						
 						$item['Quantity'] = $qtyhiddenproduct;
+						$this->amount = $pricehiddenproduct * $qtyhiddenproduct;
 						$item['UnitPrice'] = $pricehiddenproduct;
 						$item['productField'] = $field["productField"];
 						$t = $item['productField'];
@@ -576,6 +577,7 @@ class GFCnpFormData {
 						$item['ItemID'] = $field["id"];
 						$item['Quantity'] = $qty;
 						$item['UnitPrice'] = $pricedonation;
+						$this->amount = $pricedonation * $qty;
 						$item['productField'] = $field["productField"];
 						$t = $item['productField'];
 						if($t)
@@ -631,11 +633,17 @@ class GFCnpFormData {
 							$isProduct = true;
 							$item['ItemName'] = $field["label"];
 							$item['ItemID'] = $field["id"];
-							$item['Quantity'] = $qty;
+							if (GFCommon::to_number(rgpost("input_{$field['productField']}_3")) != NULL) $item['Quantity'] = GFCommon::to_number(rgpost("input_{$field['productField']}_3"));
+							else $item['Quantity'] = $qty;
+							//echo $item['Quantity'].'<br/>';
+							//echo '<pre>';
+							//print_r($field);
+							//die();
 							$item['UnitPrice'] = $price;
 							$item['productField'] = $field["productField"];
 							$item['OptionValue'] = $name;
 							$choices = $field["choices"];
+							$this->amount = $price * $item['Quantity'];
 							foreach($choices as $ch)
 							{								
 								if(GFCommon::to_number($ch['price']) == $price)

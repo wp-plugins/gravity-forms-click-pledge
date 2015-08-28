@@ -116,18 +116,39 @@ class GFCnpPayment {
 	public function processPayment() {
 		$this->validate($this->Options_new, $this->formData);		
 		$xml = $this->getPaymentXML($this->Options_new, $this->formData);
-		return $this->sendPayment($xml);
+		
+		$dom = new DOMDocument('1.0', 'UTF-8');
+		$dom->loadXML($xml);
+		$nodes = $dom->getElementsByTagName('OrderItem') ; 
+		return $this->sendPayment($xml,$nodes->length);
 	}
 
 	/**
 	* validate the data members to ensure that sufficient and valid information has been given
 	*/
+	public function in_multiarray($str1,$str2,$str3, $array)
+	{
+		$exists = false;
+	
+		if (is_array($array)) {
+		   foreach ($array as $arr):
+			   if (in_array($str1, array_map('strtolower',$arr)) || in_array($str2, array_map('strtolower',$arr)) || in_array($str3, array_map('strtolower',$arr))) {
+					$exists = $arr;
+			   }
+		   endforeach;
+		} else {
+			$array . ' = ' . $str . "\n";
+			if (strpos($array, $str) !== false) $exists = true;
+		}
+	
+		return $exists;
+	}
+
+	
+	
 	private function validate($options, $formData) {
 		$errmsg = '';
 		$adminerrors = false;
-		//echo '<pre>';
-		//print_r($formData);
-		//die();
 		if($formData->creditcardCount == 0 && $formData->echeckCount == 0 && $formData->custompaymentCount == 0) {
 			$errmsg .= "Payment form should have 'Credit Card', 'eCheck', 'C&P Custom' for processing. Please contact administrator\n";
 			$adminerrors = true;
@@ -201,13 +222,8 @@ class GFCnpPayment {
 		}		
 		
 		if(!$adminerrors) {
-		/*
-		if ($formData->firstName == '')
-			$errmsg .= "You should enter First Name to process your payment.\n";*/
 		if (strlen($formData->firstName) > 50)
 			$errmsg .= "First Name should not exceed 50 characters length.\n";		
-		/*if ($formData->lastName == '')
-			$errmsg .= "You should enter Last Name to process your payment.\n";*/
 		if (strlen($formData->lastName) > 50)
 			$errmsg .= "Last Name should not exceed 50 characters length.\n";
 		if (!is_array( $formData->productdetails ) && strlen($formData->productdetails) === 0)
@@ -250,7 +266,6 @@ class GFCnpPayment {
 			if( $formData->address_country_shipping == '' )
 			$errmsg .= "Please select shipping country.\n";
 		}
-		
 		if(count($formData->needtovalidatefields)) {
 			for($r = 0; $r < count($formData->needtovalidatefields); $r++)
 			{
@@ -261,23 +276,35 @@ class GFCnpPayment {
 			}
 		}
 		
-		if (!is_numeric($this->amount) || $this->amount < 0)
-			$errmsg .= "amount must be given as a number.\n";
-		else if (!is_float($this->amount))
+		if (!is_float($this->amount))
 			$this->amount = (float) $this->amount;
 		if((isset($formData->recurring)) && ($formData->recurring['isRecurring'] == 'yes') && $this->amount == 0) {
 			$errmsg .= "amount must be greater than zero for recurring transaction.\n";
 		}
-		$processtype = 'CareditCard';
-		if($formData->creditcardCount > 0 && $this->cardHoldersName != '' && $this->cardNumber != '') {
-			$processtype = 'CareditCard';
-		} else if($formData->echeckCount > 0 && $formData->ecRouting != '') {
+		$processtype = 'CreditCard';
+		if($formData->creditcardCount > 0 && $this->cardHoldersName == NULL && $this->cardNumber == NULL) {
+			$processtype = 'CreditCard';
+		} else if($formData->echeckCount > 0 && $formData->ecRouting == NULL) {
 			$processtype = 'eCheck';
-		} else if($formData->custompaymentCount > 0) {
+		} else if($formData->custompaymentCount > 0 && $formData->custompaymentCount == NULL) {
 			$processtype = 'custompayment';
 		}
-		
-		if($formData->creditcardCount != 0 && $processtype == 'CareditCard') {
+		$new_arry =  $this->in_multiarray('payment method','select payment type','select payment method', $formData->customfields);
+						 // do something if the given value does not exist in the array
+			
+		if (is_array($new_arry)) {
+			if ( strtolower($new_arry['FieldValue']) == 'creditcard' || strtolower($new_arry['FieldValue']) == 'credit card' ) {
+				$processtype = 'CreditCard';
+			} else if (strtolower($new_arry['FieldValue']) == 'echeck' || strtolower($new_arry['FieldValue']) == 'e check') {
+				$processtype = 'eCheck';
+			} else {
+				if ($formData->custompaymentField['isRequired'] == 1 && $formData->custompaymentCount > 0 && $formData->paymentnumber == NULL) {
+					$errmsg .= 'This field is required.';
+				}
+				$processtype = 'CnpCustom';
+			}
+		}		
+		if($formData->creditcardCount != 0 && $processtype == 'CreditCard') {
 			if (strlen($this->cardHoldersName) === 0)
 				$errmsg .= "card holder's name cannot be empty.\n";
 			if (strlen($this->cardNumber) === 0)
@@ -375,9 +402,6 @@ class GFCnpPayment {
 	*/
 	public function getPaymentXML($configValues, $orderplaced) 
 	{
-		//echo '<pre>';
-		//print_r($orderplaced);
-		//die('class.GFCnpPayment.php');
 		$dom = new DOMDocument('1.0', 'UTF-8');
 		$root = $dom->createElement('CnPAPI', '');
 		$root->setAttribute("xmlns","urn:APISchema.xsd");
@@ -398,7 +422,7 @@ class GFCnpPayment {
 		$applicationname=$dom->createElement('Name','CnP_PaaS_FM_GravityForm'); 
 		$applicationid=$application->appendChild($applicationname);
 
-		$applicationversion=$dom->createElement('Version','2.100.013');
+		$applicationversion=$dom->createElement('Version','2.100.014');
 		$applicationversion=$application->appendChild($applicationversion);
 
 		$request = $dom->createElement('Request', '');
@@ -439,9 +463,6 @@ class GFCnpPayment {
 		if($orderplaced->firstName || $orderplaced->ccName) {
 		$billinginfo=$dom->createElement('BillingInformation','');
 		$billinginfo=$cardholder->appendChild($billinginfo);
-		//echo '<pre>';
-		//print_r($orderplaced);
-		//die();
 		if($orderplaced->firstName != '') {
 		$billfirst_name=$dom->createElement('BillingFirstName',$this->safeString($orderplaced->firstName,50));
 		$billfirst_name=$billinginfo->appendChild($billfirst_name);
@@ -466,14 +487,11 @@ class GFCnpPayment {
 			} else {
 				$BillingLastName = '';
 			}
-			//print_r($parts);
-			//echo $BillingLastName;
 			if($BillingLastName != '') {
 			$billlast_name=$dom->createElement('BillingLastName',$this->safeString($BillingLastName,50));
 			$billlast_name=$billinginfo->appendChild($billlast_name);
 			}
 		}
-//die();
 		if (isset($orderplaced->email) && $orderplaced->email != '')
 		{
 			$bill_email=$dom->createElement('BillingEmail',$orderplaced->email);
@@ -640,7 +658,6 @@ class GFCnpPayment {
 			$custonodes = 0;
 			for ($p = 0; $p < count($orderplaced->customfields); $p++) 
 			{
-			//if((substr($orderplaced->customfields[$p]['FieldName'], 0, 5) != '{SKU}') && $orderplaced->customfields[$p]['FieldValue'] != '') {
 			if((substr($orderplaced->customfields[$p]['FieldName'], 0, 5) != '{SKU}')) {
 				$custonodes++;
 				$customfield = $dom->createElement('CustomField','');
@@ -658,17 +675,33 @@ class GFCnpPayment {
 		}
 		
 		
-		$processtype = 'CareditCard';
-		if($orderplaced->creditcardCount > 0 && $orderplaced->ccName != '' && $orderplaced->ccNumber != '') {
-			$processtype = 'CareditCard';
-		} else if($orderplaced->echeckCount > 0 && $orderplaced->ecRouting != '') {
+		$processtype = 'CreditCard';
+		if($orderplaced->creditcardCount > 0 && $this->cardHoldersName == NULL && $this->cardNumber == NULL) {
+			$processtype = 'CreditCard';
+		} else if($orderplaced->echeckCount > 0 && $orderplaced->ecRouting == NULL) {
 			$processtype = 'eCheck';
-		} else {
-			$processtype = 'Custom';
+		} else if($orderplaced->custompaymentCount > 0 && $orderplaced->custompaymentCount == NULL) {
+			$processtype = 'custompayment';
 		}
+		$new_arry =  $this->in_multiarray('payment method','select payment type','select payment method', $orderplaced->customfields);
+						 // do something if the given value does not exist in the array
+			
+		if (is_array($new_arry)) {
+			if ( strtolower($new_arry['FieldValue']) == 'creditcard' || strtolower($new_arry['FieldValue']) == 'credit card' ) {
+				$processtype = 'CreditCard';
+			} else if (strtolower($new_arry['FieldValue']) == 'echeck' || strtolower($new_arry['FieldValue']) == 'e check') {
+				$processtype = 'eCheck';
+			} else {
+				if ($orderplaced->custompaymentField['isRequired'] == 1 && $orderplaced->custompaymentCount > 0 && $orderplaced->paymentnumber == NULL) {
+					$errmsg .= 'This field is required.';
+				}
+				$processtype = 'CnpCustom';
+			}
+		}
+
 		$paymentmethod=$dom->createElement('PaymentMethod','');
 		$paymentmethod=$cardholder->appendChild($paymentmethod);
-		if($orderplaced->creditcardCount != 0 && $processtype == 'CareditCard') 
+		if($orderplaced->creditcardCount != 0 && $processtype == 'CreditCard') 
 		{
 			$payment_type=$dom->createElement('PaymentType','CreditCard');
 			$payment_type=$paymentmethod->appendChild($payment_type);
@@ -689,7 +722,7 @@ class GFCnpPayment {
 			$credit_expdate=$dom->createElement('ExpirationDate',str_pad($orderplaced->ccExpMonth,2,'0',STR_PAD_LEFT) ."/" .substr($orderplaced->ccExpYear,2,2));
 			$credit_expdate=$creditcard->appendChild($credit_expdate);
 		} 
-		else if($orderplaced->echeckCount != 0 && $processtype == 'echeck')
+		else if($orderplaced->echeckCount != 0 && $processtype == 'eCheck')
 		{
 			
 			$payment_type=$dom->createElement('PaymentType','Check');
@@ -735,9 +768,6 @@ class GFCnpPayment {
 		
 		$total_calculate = 0;
 		
-		//echo '<pre>';
-		//print_r($orderplaced);
-		//die();
 		//Products processing
 		if(isset($orderplaced->productdetails) && count($orderplaced->productdetails))
 		{
@@ -746,12 +776,10 @@ class GFCnpPayment {
 			$OptionLabel = '';			
 			$p = 0;
 			$products_included = array();
-			//echo '<pre>';
-			//print_r($orderplaced);
-			//die();
 			foreach ( $orderplaced->productdetails as  $pr) 
-			{				
-				if(isset($pr['OptionValue']) && $pr['OptionValue'] != '' && !in_array($pr['ItemID'], $products_included)) {
+			{		
+			
+				if(isset($pr['OptionValue']) && $pr['OptionValue'] != '' && !in_array($pr['ItemID'], $products_included) && array_key_exists($pr['productField'], $orderplaced->productdetails)) {
 					$OptionValue = '';
 					$orderitem=$dom->createElement('OrderItem','');
 					$orderitem=$orderitemlist->appendChild($orderitem);
@@ -782,8 +810,6 @@ class GFCnpPayment {
 						}
 					}
 					$cost = $cost + $optcost;
-					//print_r($products_included);
-					//die();
 					if($conditionalfieldlabel != '') {
 						$tempName = $tempName . ' ('.$conditionalfieldlabel.')';
 					} else {
@@ -795,9 +821,6 @@ class GFCnpPayment {
 					
 					$quntity=$dom->createElement('Quantity',$pr['Quantity']);
 					$quntity=$orderitem->appendChild($quntity);
-					//print_r($pr);
-					//echo ($cost/$orderplaced->recurring['Installments'])*$pr['Quantity'];
-					//die('hhhhhhhhhhhhhh');
 					if((isset($orderplaced->recurring)) && ($orderplaced->recurring['isRecurring'] == 'yes')) {
 						if($orderplaced->recurring['indefinite'] == 'yes') {
 							$Installments = ($orderplaced->recurring['RecurringMethod'] == 'Installment') ? 998 : 999;
@@ -810,6 +833,7 @@ class GFCnpPayment {
 						
 						if($orderplaced->recurring['RecurringMethod'] == 'Installment') {						
 						$total_calculate += $this->number_format(($cost/$Installments),2,'.','')*$pr['Quantity'];
+						
 						$unitprice=$dom->createElement('UnitPrice',($this->number_format(($cost/$Installments),2,'.','')*100));
 						$unitprice=$orderitem->appendChild($unitprice);
 						} else {
@@ -826,10 +850,8 @@ class GFCnpPayment {
 					//SKU Handling
 					foreach($orderplaced->customfields as $sub)
 					{
-						//print_r($sub);
 						if((substr($sub['FieldName'], 0, 5) == '{SKU}') && $sub['FieldValue'] != '') {
 							$parts = explode('}{OPTION=', $sub['FieldName']);
-							//print_r($parts);
 							if(count($parts) > 1) //TO handle if product has options
 							{
 							$id = $parts[0];
@@ -842,8 +864,6 @@ class GFCnpPayment {
 							$id = substr($id, 0, -1);
 							$val = '';
 							}
-							//echo $id;
-							//die();
 							if($id == $pr['ItemID'] && $OptionLabel == substr($parts[1],0,-1)) 
 							{
 								
@@ -865,17 +885,14 @@ class GFCnpPayment {
 							
 						}
 					}
-					//die();
 				}
 			}
-			
+
 			//Products which are not having options			
 			foreach ( $orderplaced->productdetails as  $pr) 
 			{				
-				//print_r($products_included);
-				//die();
-				if(!in_array($pr['ItemID'], $products_included)) {
-					//echo $pr['ItemID'].'<br>';
+				
+				if(!in_array($pr['ItemID'], $products_included) && $pr['productField'] == NULL) {
 					$OptionValue = '';
 					$orderitem=$dom->createElement('OrderItem','');
 					$orderitem=$orderitemlist->appendChild($orderitem);
@@ -892,9 +909,6 @@ class GFCnpPayment {
 
 					$quntity=$dom->createElement('Quantity',$pr['Quantity']);
 					$quntity=$orderitem->appendChild($quntity);
-					//print_r($pr);
-					//echo ($cost/$orderplaced->recurring['Installments'])*$pr['Quantity'];
-					//die('hhhhhhhhhhhhhh');
 					if((isset($orderplaced->recurring)) && ($orderplaced->recurring['isRecurring'] == 'yes')) {
 						if($orderplaced->recurring['indefinite'] == 'yes') {
 							$Installments = ($orderplaced->recurring['RecurringMethod'] == 'Installment') ? 998 : 999;
@@ -906,7 +920,7 @@ class GFCnpPayment {
 						}
 						
 						if($orderplaced->recurring['RecurringMethod'] == 'Installment') {						
-						$total_calculate += $this->number_format(($cost/$Installments),2,'.','')*$pr['Quantity'];
+						$total_calculate += $this->number_format(($cost/$Installments),2,'.','')*$pr['Quantity'];						
 						$unitprice=$dom->createElement('UnitPrice',($this->number_format(($cost/$Installments),2,'.','')*100));
 						$unitprice=$orderitem->appendChild($unitprice);
 						} else {
@@ -923,10 +937,8 @@ class GFCnpPayment {
 					//SKU Handling
 					foreach($orderplaced->customfields as $sub)
 					{
-						//print_r($sub);
 						if((substr($sub['FieldName'], 0, 5) == '{SKU}') && $sub['FieldValue'] != '') {
 							$parts = explode('}{OPTION=', $sub['FieldName']);
-							//print_r($parts);
 							if(count($parts) > 1) //TO handle if product has options
 							{
 							$id = $parts[0];
@@ -939,8 +951,6 @@ class GFCnpPayment {
 							$id = substr($id, 0, -1);
 							$val = '';
 							}
-							//echo $id;
-							//die();
 							if($id == $pr['ItemID'] && $OptionLabel == substr($parts[1],0,-1)) 
 							{
 								
@@ -962,14 +972,10 @@ class GFCnpPayment {
 							
 						}
 					}
-					//die();
 				}
 			}
 			
 		}
-		//echo '<pre>';
-		//print_r($orderplaced);
-		//die('ffffffffff');
 		$ShippingValue = 0;
 		if(isset($orderplaced->shippingfields) && count($orderplaced->shippingfields)) {
 			$shipping=$dom->createElement('Shipping','');
@@ -1084,27 +1090,34 @@ class GFCnpPayment {
 		
 		$coupontotal = $coupontotal_grandtotal = $coupontotal_grandtotal_calculate = 0;
 		$couponcodes = '';		
-		
 		if(count($orderplaced->couponfields) > 0) {			
-			foreach($orderplaced->couponfields as $coupon) {				
-				$coupontotal += number_format(GFCommon::to_number(GFCoupons::get_discount($coupon,$orderplaced->total)),2, '.', '');
+			foreach($orderplaced->couponfields as $coupon) {
+				if (isset($orderplaced->shippingfields) && count($orderplaced->shippingfields)) {
+					$temp_total = $total_calculate + $ShippingValue;
+				} else {
+					$temp_total = $total_calculate;
+				}	
+				$coupontotal += number_format(GFCommon::to_number(GFCoupons::get_discount($coupon,$temp_total)),2, '.', '');
+				if($orderplaced->recurring['RecurringMethod'] == 'Installment' && $orderplaced->recurring['isRecurring'] == 'yes') {
+					if ($coupon['type'] == 'flat') {
+						$coupontotal = number_format(GFCommon::to_number($coupon['amount']/$Installments),2, '.', '');
+					}
+					if ($coupon['type'] == 'percentage') {
+					
+					}
+									
+				}			
 				$couponcodes .= $coupon['code'] . ';';
 			}
 			$coupontotal_grandtotal = $coupontotal;
 			$coupontotal_grandtotal_calculate = $coupontotal;
 			$coupontotal = $coupontotal * 100;			
 		}
-		
-		//echo '<pre>';
-		//print_r($orderplaced);
-		//echo $coupontotal;
-		//die();
 		$trans_totals=$dom->createElement('CurrentTotals','');
 		$trans_totals=$transation->appendChild($trans_totals);
 		
 		if($coupontotal > 0) {		
 			if(isset($orderplaced->recurring) && $orderplaced->recurring['isRecurring'] == 'yes' && $orderplaced->recurring['RecurringMethod'] == 'Installment') {
-				$coupontotal_grandtotal_calculate = $this->number_format($coupontotal_grandtotal / $orderplaced->recurring['Installments'], 2, '.', '');
 				$total_discount=$dom->createElement('TotalDiscount', $coupontotal_grandtotal_calculate * 100);
 				$total_discount=$trans_totals->appendChild($total_discount);
 			} else {
@@ -1127,12 +1140,10 @@ class GFCnpPayment {
 			else {
 				$Installments = 999;
 			}
-			//$Total = $this->number_format($orderplaced->total/$Installments, 2, '.', '');
 			$Total = $total_calculate;
 		} else {
 			$Total = $total_calculate;
 		}
-		
 		
 		$GrandTotal = ($Total + $ShippingValue) - $coupontotal_grandtotal_calculate;
 		$total_amount=$dom->createElement('Total',($GrandTotal*100));
@@ -1145,7 +1156,6 @@ class GFCnpPayment {
 		
 		if($coupontotal > 0) {
 			if(isset($orderplaced->recurring) && $orderplaced->recurring['isRecurring'] == 'yes' && $orderplaced->recurring['RecurringMethod'] == 'Installment') {				
-				$coupontotal_grandtotal_calculate = $this->number_format($coupontotal_grandtotal / $orderplaced->recurring['Installments'], 2, '.', '');		
 				$trans_coupon_discount=$dom->createElement('TransactionDiscount', $coupontotal_grandtotal_calculate * 100);
 				$trans_coupon_discount=$transation->appendChild($trans_coupon_discount);				
 			} else {
@@ -1155,10 +1165,6 @@ class GFCnpPayment {
 		}
 		
 		$strParam =$dom->saveXML();		
-		//echo '<pre>';
-		//print_r($orderplaced);
-		//echo $strParam;
-		//die('Iam in class.GFCnpPayment.php');
 		return $strParam;
 	}
 	
@@ -1177,13 +1183,17 @@ class GFCnpPayment {
 	* @return response object from Click & Pledge
 	* @param string $xml Click & Pledge payment request as an XML document, as per Click & Pledge specifications
 	*/
-	private function sendPayment($xml) {
-			
+	private function sendPayment($xml,$item_count) {
+		if ($item_count >0)	{		
 		$connect = array('soap_version' => SOAP_1_1, 'trace' => 1, 'exceptions' => 0);
 		$client = new SoapClient('https://paas.cloud.clickandpledge.com/paymentservice.svc?wsdl', $connect);
 		$soapParams = array('instruction'=>$xml);		 
 		$response = $client->Operation($soapParams);
 
 		return $response;
+		} else {
+		$response = 'Item-0';
+		return $response;
+		}
 	}
 }

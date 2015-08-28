@@ -5,8 +5,8 @@ Plugin URI: http://clickandpledge.com/
 Author URI: http://clickandpledge.com/
 Tags: gravityforms, gravity forms, gravity, cnp, clickandpledge, payment gateway, payment module, ecommerce, online payments, Click & Pledge, Click&Pledge, Click, Pledge, Salesforce, Payment, Kamran
 Requires at least: 3.7.1
-Tested up to: 4.2.2
-Stable tag: 2.100.013
+Tested up to: 4.3
+Stable tag: 2.100.014
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -54,6 +54,12 @@ Gravity Forms will now display the Credit Card and Recurring fields under Pricin
 7. Credit Card Fields
 8. eCheck Fields
 == Changelog ==
+
+= 2.100.014 =
+* Coupons Add-on Fixed Quantity issue.
+* Fixed Recurring issue.
+* Fixed Conditional Logic payment methods error handling
+
 = 2.100.013 =
 * Coupons Add-on Support added ( Ref:http://forums.clickandpledge.com/node/18271 )
 
@@ -151,11 +157,9 @@ Version 2.0.6
 * Added ability to specify mode (Production or Test) on settings page
 
 == Frequently Asked Questions ==
-<strong>Click & Pledge Overview</strong><br>
-<a href="https://forums.clickandpledge.com/content.php?r=255-Click-Pledge-Webinar" target="_blank"> <strong>Recorded Webinar</strong></a><br>
-<br>
+= Click & Pledge Overview =
+* <a href="http://help.clickandpledge.com/customer/portal/articles/2089939" target="_blank"> <strong>Recorded Webinar</strong></a>
 
-<strong>Other helpful resources:</strong>
-<a href="https://forums.clickandpledge.com/" target="_blank">Click & Pledge Forum</a>
-<a href="https://forums.clickandpledge.com/list.php?r=category/71-How-to-Videos" target="_blank">Click & Pledge 'How To' Videos</a>
-<a href="http://manual.clickandpledge.com/" target="_blank">Click & Pledge Manual</a>
+= Other helpful resources: =
+* <a href="http://forums.clickandpledge.com/forum/platform-product-forums/3rd-party-integrations/gravity-forms" target="_blank">Gravity Forms Click & Pledge Forum</a>
+* <a href="http://manual.clickandpledge.com/Gravity-Forms.html" target="_blank">Integration Manual Gravity Forms Click & Pledge</a>
