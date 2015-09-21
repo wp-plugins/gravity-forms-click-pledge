@@ -1,4 +1,7 @@
 -----------------------------------------------------------------------------
+Version 2.100.015
+- Resolving double posting of items to salesforce opportunity when OTHER field is used.
+
 Version 2.100.014
 - Coupons Add-on Fixed Quantity issue.
 - Fixed Recurring issue.

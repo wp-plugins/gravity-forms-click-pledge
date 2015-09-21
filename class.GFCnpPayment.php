@@ -422,7 +422,7 @@ class GFCnpPayment {
 		$applicationname=$dom->createElement('Name','CnP_PaaS_FM_GravityForm'); 
 		$applicationid=$application->appendChild($applicationname);
 
-		$applicationversion=$dom->createElement('Version','2.100.014');
+		$applicationversion=$dom->createElement('Version','2.100.015');
 		$applicationversion=$application->appendChild($applicationversion);
 
 		$request = $dom->createElement('Request', '');
@@ -888,10 +888,11 @@ class GFCnpPayment {
 				}
 			}
 
-			//Products which are not having options			
+			//Products which are not having options	
 			foreach ( $orderplaced->productdetails as  $pr) 
 			{				
 				
+				if (array_search('{SKIPIF0}', $pr) == NULL) {
 				if(!in_array($pr['ItemID'], $products_included) && $pr['productField'] == NULL) {
 					$OptionValue = '';
 					$orderitem=$dom->createElement('OrderItem','');
@@ -933,7 +934,6 @@ class GFCnpPayment {
 					$unitprice=$dom->createElement('UnitPrice',($cost*100));
 					$unitprice=$orderitem->appendChild($unitprice);
 					}
-					
 					//SKU Handling
 					foreach($orderplaced->customfields as $sub)
 					{
@@ -974,7 +974,7 @@ class GFCnpPayment {
 					}
 				}
 			}
-			
+		   }	
 		}
 		$ShippingValue = 0;
 		if(isset($orderplaced->shippingfields) && count($orderplaced->shippingfields)) {

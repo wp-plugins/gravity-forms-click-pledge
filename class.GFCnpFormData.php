@@ -303,9 +303,9 @@ class GFCnpFormData {
 						$item_coupon['name'] = $details->name;
 						$item_coupon['code'] = $details->code;
 						$item_coupon['can_stack'] = $details->can_stack;
-						$item_coupon['usage_count'] = $details->usage_count;
+						$item_coupon['usage_count'] = $details->usage_count;						
 						if ($details->type == 'percentage' && $details->amount != 100) {
-							$this->amount = $this->amount - ($this->amount * $item_coupon['amount'])/100;
+							 $this->amount = $this->amount - ($this->amount * $item_coupon['amount'])/100;
 						} else if ($details->type == 'percentage' && $details->amount == 100) {
 							$this->amount = 0;
 						}
@@ -490,10 +490,19 @@ class GFCnpFormData {
 		}
 	
 		// if form didn't pass the total, pick it up from calculated amount
-		if ($this->total < 0)
+		if ($this->amount < 0)
 		   $this->total = $this->amount = 0;
+		if ($this->amount > 0 && !isset($item_coupon)) {
+			$this->total = $this->amount;
+		}
+		if ($this->amount > 0 && isset($item_coupon)) {
+			if ($item_coupon['type'] == 'percentage' && $item_coupon['amount'] == 100) {
+				$this->amount = 0;
+			}
+		}
+		 
 	}
-
+		
 	/**
 	* extract the price from a product field, and multiply it by the quantity
 	* @return float
