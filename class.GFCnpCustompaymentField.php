@@ -33,6 +33,27 @@ class GFCnpCustompaymentField {
 		add_filter('gform_tooltips', array($this, 'gformTooltips'));
 		add_filter('gform_pre_submission', array($this, 'gformPreSubmit'));
 
+		add_filter( 'gform_admin_pre_render', function ( $form ) {
+			echo GFCommon::is_form_editor() ? "
+				<script type='text/javascript'>
+				gform.addFilter('gform_form_editor_can_field_be_added', function (canFieldBeAdded, type) {
+					
+					if (type == 'CnpCustompaymentButton' || type == 'gfcnpcustompayment') {
+					
+						if (GetFieldsByType(['CnpCustompaymentButton']).length > 0 || GetFieldsByType(['gfcnpcustompayment']).length > 0) {
+							alert('" . __( 'Only one Custom Payment field can be added to the form', 'gfcnp_plugin' ) . "');
+							return false;
+						}
+					}
+					return canFieldBeAdded;
+				});
+				</script>" : '';
+				
+			//return the form object from the php hook
+			return $form;
+		} );
+		
+		
 		if (is_admin()) {
 			add_filter('gform_field_css_class', array($this, 'watchFieldType'), 10, 2);
 		}
@@ -69,7 +90,7 @@ class GFCnpCustompaymentField {
 	* @param boolean $ajax
 	*/
 	public function gformEnqueueScripts($form, $ajax) {
-		if ($this->plugin->hasFieldType($form['fields'], GFCNP_FIELD_CUSTOMPAYMENT)) {
+		if ($this->plugin->hasFieldType($form['fields'], GFCNP_FIELD_CUSTOMPAYMENT) || $this->plugin->hasFieldType($form['fields'], 'CnpCustompaymentButton')) {
 			// enqueue script for field
 			//wp_enqueue_script('gfcnp_custompayment');
 
@@ -101,8 +122,8 @@ class GFCnpCustompaymentField {
 					'value' => 'C&P Custom',
 					'name' => 'CnpCustompaymentButton',
 					'id' => 'CnpCustompaymentButton',
-					'data-type' => 'CnpCustompaymentButton',
-					'onclick' => "StartAddField_cnp('" . GFCNP_FIELD_CUSTOMPAYMENT . "');",
+					//'data-type' => 'CnpCustompaymentButton',
+					'onclick' => "StartAddField('" . GFCNP_FIELD_CUSTOMPAYMENT . "');",
 				);
 				break;
 			}
@@ -173,7 +194,7 @@ class GFCnpCustompaymentField {
 	public function gformPreSubmit($form) {
 	
 		foreach ($form['fields'] as $field) {
-			if ($field['type'] == GFCNP_FIELD_CUSTOMPAYMENT && !RGFormsModel::is_field_hidden($form, $field, RGForms::post('gform_field_values'))) {
+			if (($field['type'] == GFCNP_FIELD_CUSTOMPAYMENT || $field['type'] == 'CnpCustompaymentButton') && !RGFormsModel::is_field_hidden($form, $field, RGForms::post('gform_field_values'))) {
 				$custompayment = self::getPost($field['id']);
 				$_POST["input_{$field['id']}"] = '';
 				
@@ -191,7 +212,7 @@ class GFCnpCustompaymentField {
 	public function gformPreValidation($form) {
 		
 		foreach($form["fields"] as $field) {
-			if (($field['type'] == GFCNP_FIELD_CUSTOMPAYMENT) && (isset($_POST['gfp_'.$field['id']]))) {
+			if (($field['type'] == GFCNP_FIELD_CUSTOMPAYMENT || $field['type'] == 'CnpCustompaymentButton') && (isset($_POST['gfp_'.$field['id']]))) {
 				$custompayment = self::getPost($field['id']);				
 				$_POST["input_{$field['id']}"] = serialize($custompayment);
 				$this->first_load = false;				
@@ -221,7 +242,7 @@ class GFCnpCustompaymentField {
 	*/
 	public function watchFieldType($classes, $field) {
 		// if field type matches, add filters that don't allow testing for field type
-		if ($field['type'] == GFCNP_FIELD_CUSTOMPAYMENT) 
+		if ($field['type'] == GFCNP_FIELD_CUSTOMPAYMENT || $field['type'] == 'CnpCustompaymentButton' ) 
 		{
 			//echo GFCNP_FIELD_CUSTOMPAYMENT.':Adi';
 			add_filter('gform_duplicate_field_link', array($this, 'gformDuplicateFieldLink'));
@@ -253,7 +274,7 @@ class GFCnpCustompaymentField {
 	*/
 	public function gformFieldInput($input, $field, $value, $lead_id, $form_id) {
 		//print_r($field);
-		if ($field['type'] == GFCNP_FIELD_CUSTOMPAYMENT) {
+		if ($field['type'] == GFCNP_FIELD_CUSTOMPAYMENT || $field['type'] == 'CnpCustompaymentButton') {
 			// pick up the real value
 			$value = rgpost('gfcnp_' . $field['id']);
 			

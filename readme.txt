@@ -5,8 +5,8 @@ Plugin URI: http://clickandpledge.com/
 Author URI: http://clickandpledge.com/
 Tags: gravityforms, gravity forms, gravity, cnp, clickandpledge, payment gateway, payment module, ecommerce, online payments, Click & Pledge, Click&Pledge, Click, Pledge, Salesforce, Payment, Kamran
 Requires at least: 3.7.1
-Tested up to: 4.3
-Stable tag: 2.100.015
+Tested up to: 4.3.1
+Stable tag: 2.100.016
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -54,6 +54,9 @@ Gravity Forms will now display the Credit Card and Recurring fields under Pricin
 7. Credit Card Fields
 8. eCheck Fields
 == Changelog ==
+= 2.100.016 =
+* Fixed Drag and Drop issue with Click & Pledge fields
+
 = 2.100.015 =
 * Resolving double posting of items to salesforce opportunity when OTHER field is used.
 

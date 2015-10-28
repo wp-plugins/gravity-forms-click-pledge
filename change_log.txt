@@ -1,4 +1,7 @@
 -----------------------------------------------------------------------------
+Version 2.100.016
+- Fixed Drag and Drop issue with Click & Pledge fields.
+
 Version 2.100.015
 - Resolving double posting of items to salesforce opportunity when OTHER field is used.
 

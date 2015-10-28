@@ -102,7 +102,7 @@ class GFCnpEcheckField {
 					'value' => 'eCheck',
 					'name' => 'EcheckButton',
 					'id' => 'EcheckButton',
-					'onclick' => "StartAddField_cnp('" . GFCNP_FIELD_ECHECK . "');",
+					'onclick' => "StartAddField('" . GFCNP_FIELD_ECHECK . "');",
 				);
 				break;
 			}
@@ -401,3 +401,23 @@ class GFCnpEcheckField {
 		return $input;
 	}
 }
+
+add_filter( 'gform_admin_pre_render', function ( $form ) {
+    echo GFCommon::is_form_editor() ? "
+        <script type='text/javascript'>
+        gform.addFilter('gform_form_editor_can_field_be_added', function (canFieldBeAdded, type) {
+			
+            if (type == 'gfcnpecheck') {
+			
+                if (GetFieldsByType(['gfcnpecheck']).length > 0) {
+                    alert('" . __( 'Only one eCheck field can be added to the form', 'gfcnp_plugin' ) . "');
+                    return false;
+                }
+            }
+            return canFieldBeAdded;
+        });
+        </script>" : '';
+        
+    //return the form object from the php hook
+    return $form;
+} );

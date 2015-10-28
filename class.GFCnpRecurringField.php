@@ -111,7 +111,7 @@ class GFCnpRecurringField {
 					'value' => 'Recurring',
 					'name' => 'RecurringButton',
 					'id' => 'RecurringButton',
-					'onclick' => "StartAddField_cnp('" . GFCNP_FIELD_RECURRING . "');",
+					'onclick' => "StartAddField('" . GFCNP_FIELD_RECURRING . "');",
 				);
 				break;
 			}
@@ -314,13 +314,13 @@ class GFCnpRecurringField {
 					
 					if($value['indefinite'] == 'no') {
 						if(empty($value['Installments'])) {
-							$messages[] = "Please enter value greater than 2.";
+							$messages[] = "Please enter value greater than 1.";
 						}
 						elseif (preg_match('/^\d+\.\d+$/',$value['Installments'])) {
 							$messages[] = "Please enter digits only.";
 						}
 						elseif($value['Installments'] <= 1) {
-							$messages[] = "Please enter value greater than 2.";
+							$messages[] = "Please enter value greater than 1.";
 						}
 						elseif ($value['RecurringMethod'] == 'Subscription') {
 							if(!empty($options['gfcnp_maxrecurrings_Subscription'])) {
@@ -1073,3 +1073,22 @@ class GFCnpRecurringField {
 		return false;
 	}
 }
+add_filter( 'gform_admin_pre_render', function ( $form ) {
+    echo GFCommon::is_form_editor() ? "
+        <script type='text/javascript'>
+        gform.addFilter('gform_form_editor_can_field_be_added', function (canFieldBeAdded, type) {
+			
+            if (type == 'gfcnprecurring') {
+			
+                if (GetFieldsByType(['gfcnprecurring']).length > 0) {
+                    alert('" . __( 'Only one Recurring field can be added to the form', 'gfcnp_plugin' ) . "');
+                    return false;
+                }
+            }
+            return canFieldBeAdded;
+        });
+        </script>" : '';
+        
+    //return the form object from the php hook
+    return $form;
+} );
